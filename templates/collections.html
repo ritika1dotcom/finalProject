@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h1 class="text-xl font-bold">Recommended Songs for {{ user_obj.username }}</h1>
+<h2 class="text-lg font-semibold py-5">Playlist Recommendation Generated using Apriori Algorithm</h2>
+
+<div id="recommended-songs-table">
+
+    <div class="w-[200px]">
+        {% for recommendation in recommended_songs %}
+        <div class="flex flex-row gap-5  py-2 ">
+                <img
+                src="{{ recommendation.song_details.album_image }}"
+                alt="{{ recommendation.song }}"
+                width="100"
+                height="50"
+                />
+        <div>
+            <p class="text-xl font-bold">{{ recommendation.song }}</p>
+            <p class="text-lg font-semibold">Artist Name:{{ recommendation.song_details.artist_name }}</p>
+            
+        </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+
+{% endblock %}
+

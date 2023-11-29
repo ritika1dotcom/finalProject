@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Music Recommendation System</title>
+    
+    <!-- Bootstrap and Font Awesome CSS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" integrity="sha512-z3gLpd7yknf1YoNbCzqRKc4qyor8gaKU1qmn+CShxbuBusANI9QpRohGBreCFkKxLhei6S9CQXFEbbKuqLg0DA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    
+    <!-- Tailwind CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.16/dist/tailwind.min.css" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400&display=swap" rel="stylesheet">
+    <link rel="stylesheet" type="text/css" href="{% static 'styles.css' %}">
+
+
+    <!-- Bootstrap and Popper.js -->
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.3/dist/umd/popper.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.min.js"></script>
+    <script>
+            function getCookie(name) {
+            let value = "; " + document.cookie;
+            let parts = value.split("; " + name + "=");
+            if (parts.length === 2) return parts.pop().split(";").shift();
+        }
+
+        let csrfToken = getCookie('csrftoken');
+
+        function playSong(previewUrl, song_title, artist_name,album_image) {
+            console.log("Play song function called with URL: ", previewUrl);
+            console.log("Album Image URL:", album_image);
+            
+            if (!previewUrl) {
+                console.error("No valid preview URL provided.");
+                return;
+            }
+            
+            const audioPlayer = document.getElementById('audio-player');
+            audioPlayer.src = previewUrl;
+            audioPlayer.play();
+
+            // Save song details to SongHistory if the user is authenticated
+            fetch("/user/add_song_history/", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "X-CSRFToken": csrfToken,
+                },
+                body: JSON.stringify({
+                    song_title: song_title,
+                    artist_name: artist_name,
+                    album_image: album_image,
+                })
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.status !== "ok") {
+                    console.error("Error saving song history:", data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Fetch error:', error);
+            });
+        }
+    </script>
+</head>
+
+<body>
+    {% if messages %}
+        <div class="container mt-5 bg-green-500 text-black">
+            {% for message in messages %}
+            <div class="alert alert-{{ message.tags }}">
+                {{ message }}
+            </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+    {% if form.errors %}
+    <ul class="error-messages">
+        {% for field, error in form.errors.items %}
+            <li><strong>{{ field }}:</strong> {{ error|join:", " }}</li>
+        {% endfor %}
+    </ul>
+{% endif %}
+
+    <div class="flex-col">
+        <div class="flex justify-end px-10 ">
+                {% if user.is_authenticated %}
+                
+                    <a href="{% url 'logout' %}" class="">
+                        <i class="fa fa-sign-out" style="color: black;"> Log Out</i> 
+                    </a>
+                {% else %}
+                    <a href="#"  data-bs-toggle="modal" data-bs-target="#loginModal">
+                        <i class="fa fa-sign-in" style="color: black;"> Login</i> 
+                    </a>
+                {% endif %}
+            
+        </div>
+
+        <!-- Navbar start  -->
+        <nav class="navbar navbar-expand-lg navbar-light bg-light flex flex-row gap-20 px-5">
+            <a class="navbar-brand" href="#">
+                <img src="static/images/Vector.png" alt="My Site Logo" class="w-[20px]">
+            </a>
+            <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            
+            <div class="collapse navbar-collapse" id="navbarSupportedContent">
+                <ul class="navbar-nav mr-auto">
+                    <li class="nav-item active">
+                        <a class="nav-link" href="{% url 'home' %}">Home <span class="sr-only">(current)</span></a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#">Personalized</a>
+                    </li>
+                    {% if user.is_authenticated %}
+                    <li>
+                        <a href="{% url 'user_song_history'  request.user.username %}" class="nav-link" >
+                            Profile
+                        </a>
+                    </li>
+                    {% else %}
+                    <li>
+                        <a href="#" data-bs-toggle="modal" data-bs-target="#loginModal">
+                            Profile
+                        </a>
+                    </li>
+                    {% endif %}
+                </ul>
+                <div class="w-1/3 ml-4 mt-4">
+                    <form class="form-inline d-flex my-2 my-lg-0" action="{% url 'search' %}" method="GET">
+                        <input class="form-control flex-grow mr-sm-2" type="search" placeholder="Search" aria-label="Search" name="query">
+                        <button class="btn btn-outline-success my-2 my-sm-0 bg-green-600" type="submit">
+                            <i class="fa fa-search text-white"></i>
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </nav>
+            <!-- Main Content -->
+            <div class="flex-grow overflow-y-scroll no-scrollbar p-3">
+                {% block content %}
+                <!-- Default content if no block content provided by a child template. Can be left empty if not needed -->
+                {% endblock %}
+            </div>
+
+            <!-- Music Player  -->
+            <div class="bg-transparent">
+                <audio id="audio-player">
+                    {% if track %}
+                        <source id="audio-source" src="{{ track.preview_url }}" type="audio/mpeg">
+                    {% else %}
+                        <source id="audio-source" src="" type="audio/mpeg">
+                    {% endif %}
+                    Your browser does not support the audio element.
+                </audio>                    
+        </div>
+
+        </div>
+    </div>
+    
+    {% if not user.is_authenticated %}
+    <!-- Login Modal -->
+    <div class="modal fade" id="loginModal" tabindex="-1" aria-labelledby="loginModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content bg-opacity-80 rounded-lg shadow-md">
+                <div class="modal-header border-0">
+                    <h1 class="modal-title text-5xl font-semibold mb-4">Login</h1>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="text-black text-2xl">Please enter your information</p><br>
+                    <form action="{% url 'login' %}" method="POST">
+                        {% csrf_token %}
+                        <div class="mb-4">
+                            <label for="username" class="block text-gray-300">Username</label>
+                            <input type="text" id="username" name="username" class="border rounded w-full py-2 px-3 text-black bg-gray-300 focus:outline-none focus:border-blue-500">
+                        </div>
+                        <div class="mb-4">
+                            <label for="password" class="block text-gray-300">Password</label>
+                            <input type="password" id="password" name="password" class="border rounded w-full py-2 px-3 text-black bg-gray-300 focus:outline-none focus:border-blue-700 ">
+                        </div>
+                        <div class="flex items-center mb-4">
+                            <input type="checkbox" id="rememberMe" name="rememberMe" class="mr-2">
+                            <label for="rememberMe" class="text-gray-300">Remember Me</label>
+                        </div>
+                        <div class="text-right mb-4">
+                            <a href="#" class="text-black hover:underline" data-bs-toggle="modal" data-bs-target="#passwordResetModal" data-bs-dismiss="modal">Forgot Password?</a>
+                        </div>
+                        <div class="text-right mb-4">
+                            <p>Don't have an account? <a href="#" class="text-black hover:underline" data-bs-toggle="modal" data-bs-target="#registerModal" data-bs-dismiss="modal">Sign up</a></p>
+                        </div>
+                        <button type="submit" class="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded focus:outline-none focus:shadow-outline-blue active:bg-blue-700">Login</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Registration Modal -->
+    <div class="modal fade" id="registerModal" tabindex="-1" aria-labelledby="registerModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content bg-opacity-80 rounded-lg shadow-md w-96">
+                <div class="modal-header border-0">
+                    <h1 class="modal-title text-2xl font-semibold mb-4 text-black" id="registerModalLabel">Sign Up</h1>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form action="{% url 'signup' %}" method="POST">
+                        {% csrf_token %}
+                        <div class="mb-4">
+                            <label for="username1" class="block text-gray-300">Full Name</label>
+                            <input type="text" id="username1" name="username1" class="border rounded w-full py-2 px-3 text-black bg-gray-300 focus:outline-none focus:border-blue-500" required>
+                        </div>
+                        <div class="mb-4">
+                            <label for="signup-email" class="block text-gray-300">Email</label>
+                            <input type="email" id="signup-email" name="signup-email" class="border rounded w-full py-2 px-3 text-black bg-gray-300 focus:outline-none focus:border-blue-500" required>
+                        </div>
+                        <div class="mb-4">
+                            <label for="password1" class="block text-gray-300">Password</label>
+                            <input type="password" id="password1" name="password1" class="border rounded w-full py-2 px-3 text-black bg-gray-300 focus:outline-none focus:border-blue-500" required>
+                        </div>
+                        <div class="mb-4">
+                            <label for="password2" class="block text-gray-300">Confirm Password</label>
+                            <input type="password" id="password2" name="password2" class="border rounded w-full py-2 px-3 text-black bg-gray-300 focus:outline-none focus:border-blue-500" required>
+                        </div>
+                        <button type="submit" class="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded focus:outline-none focus:shadow-outline-blue active:bg-blue-700">Sign Up</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Password Reset Modal -->
+        <div class="modal fade" id="passwordResetModal" tabindex="-1" aria-labelledby="passwordResetModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content bg-opacity-80 p-8 rounded-lg shadow-md w-96">
+                    <div class="modal-header border-0">
+                        <h1 class="modal-title text-2xl font-semibold mb-4 text-black" id="passwordResetModalLabel">Forgot Password</h1>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <form action="{% url 'password_reset_email' %}" method="POST">
+                            {% csrf_token %}
+                            <div class="mb-4">
+                                <label for="email" class="block text-gray-300">Email</label>
+                                <input type="email" id="email" name="email" class="border rounded w-full py-2 px-3 text-black bg-gray-300 focus:outline-none focus:border-blue-500" required>
+                            </div>
+                            <button type="submit" class="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded focus:outline-none focus:shadow-outline-blue active:bg-blue-700">Send Reset Link</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    {% endif %}
+    
+</body>
+</html>

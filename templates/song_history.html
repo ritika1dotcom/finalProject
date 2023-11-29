@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<div class="flex flex-row">
+    <div>
+        <div class="d-flex justify-content-center mb-4 border-2 w-48 h-48 rounded-full">
+            <div class="flex items-center justify-center w-full h-full text-9xl z-20">
+                <i class="fas fa-user"></i>
+            </div>
+        </div>
+        <div class="d-flex justify-content-center">
+            <div class="btn btn-primary btn-rounded">
+                <label class="form-label text-white m-1" for="customFile2">Choose file</label>
+                <input type="file" class="form-control d-none" id="customFile2" onchange="displaySelectedImage(event, 'selectedAvatar')" />
+            </div>
+        </div>
+    </div>
+    
+    <div class="flex flex-col gap-2 py-5 px-10">
+        <h2 class="text-white">Profile</h2>
+        <h2 class="font-bold text-4xl uppercase text-white">{{ user_obj.username }}</h2>
+    </div>
+</div>
+
+
+<div class="py-5 flex flex-col gap-5">
+    <div class="border-b-2 border-t-2 pt-3 w-full">
+        <h2 class="text-green-600 text-xl font-semibold px-3">History</h2>
+    </div>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {% for song in song_history %}
+        <div class="border p-4 rounded">
+            <div class="text-center">
+                <img src="{{ song.album_image }}" alt="Album Cover" style="width: 50px; height: 100px;">
+            </div>
+            <div class="text-center mt-2">
+                <p class="text-green-600 text-xl"><strong>{{ song.song_title }}</strong> </p>
+                <p><strong>Artist:</strong> {{ song.artist_name }}</p>
+                <p><strong>Date Played:</strong> {{ song.date_played }}</p>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+{% endblock %}
