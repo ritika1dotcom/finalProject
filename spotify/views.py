@@ -7,6 +7,7 @@ import random
 from users.models import PlayHistory
 from django.contrib.auth.models import User
 from itertools import chain, combinations
+from django.core.cache import cache
 
 # Fetch client credentials from settings
 SPOTIPY_CLIENT_ID = settings.SPOTIPY_CLIENT_ID
@@ -30,6 +31,9 @@ def search_song(request):
     for track in song_results['tracks']['items']:
         # Extract the album image URL
         album_image_url = track["album"]["images"][0]["url"] if track["album"]["images"] else None
+        # artist_uri = track["artists"][0]["uri"]
+        # artist_info = sp.artist(artist_uri)
+
 
         # Add the track details to the list
         track_data = {
@@ -38,19 +42,29 @@ def search_song(request):
             "album_name": track["album"]["name"],
             "album_image": album_image_url,
             "preview_url": track.get("preview_url"),
+            # "artist_genres": artist_info["genres"] if "genres" in artist_info else [],  # Include genres, default to an empty list
         }
         tracks.append(track_data)
 
     return render(request, 'search.html', {'tracks': tracks})
 
+
 def featured_music(request):
-    # Fetch a list of featured playlists
-    playlists = sp.featured_playlists(limit=20)  # You can adjust the limit as needed
-    
+    # Check if the data is already in the cache
+    cache_key = 'featured_music_data'
+    cached_data = cache.get(cache_key)
+
+    if cached_data is not None:
+        # If data is found in the cache, use it
+        return render(request, 'home.html', {'featured_tracks': cached_data})
+
+    # If not found in the cache, fetch a list of featured playlists
+    playlists = sp.featured_playlists(limit=20)
+
     # If no playlists were found, return an empty list to the template
     if not playlists['playlists']['items']:
         return render(request, 'home.html', {'featured_tracks': []})
-    
+
     # Randomly select a playlist
     selected_playlist = random.choice(playlists['playlists']['items'])
     playlist_uri = selected_playlist['uri']
@@ -62,7 +76,7 @@ def featured_music(request):
     featured_tracks = []
     for track_data in tracks_data:
         track = track_data["track"]
-        
+
         # Get the track's main artist's details
         artist_uri = track["artists"][0]["uri"]
         artist_info = sp.artist(artist_uri)
@@ -76,9 +90,12 @@ def featured_music(request):
             "artist_genres": artist_info["genres"],
             "album_name": track["album"]["name"],
             "track_popularity": track["popularity"],
-            "album_image" : album_image_url,
-            "preview_url": track.get("preview_url") 
+            "album_image": album_image_url,
+            "preview_url": track.get("preview_url"),
         })
-        # print("featured tracks",featured_tracks);
+
+    # Store the fetched data in the cache for future requests
+    cache.set(cache_key, featured_tracks, timeout=3600)  # Cache for 1 hour (adjust as needed)
 
     return render(request, 'home.html', {'featured_tracks': featured_tracks})
+

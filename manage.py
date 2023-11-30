@@ -2,18 +2,13 @@
 """Django's command-line utility for administrative tasks."""
 import os
 import sys
-import cProfile
-from django.conf import settings
+
 
 def main():
     """Run administrative tasks."""
     os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'finalProject.settings')
     
     if len(sys.argv) > 1 and sys.argv[1] == 'runserver':
-        profile_filename = 'profile_data'
-        cProfile.run('from django.core.management import execute_from_command_line; execute_from_command_line(sys.argv)', filename=profile_filename)
-        print(f"Profiling data saved to {profile_filename}")
-    else:
         try:
             from django.core.management import execute_from_command_line
         except ImportError as exc:
