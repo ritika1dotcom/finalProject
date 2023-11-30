@@ -1,19 +1,22 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="flex flex-col gap-4">
+<div class="flex flex-row flex-wrap justify-center gap-4">
     {% if tracks %}
         {% for track in tracks %}
-            <div class="song flex items-center">
-                <button onclick="playSong('{{ track.preview_url }}', '{{ track.song_name }}', '{{ track.artist_name }}', '{{ track.album_image }}')" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-1 px-2 rounded">
-                    Play
-                </button>  
-                <div class="text-center">
-                    <img src="{{ track.album_image }}" alt="{{ track.album_name }}" style="width: 50px; height: 50px;">
+            <div {% if user.is_authenticated %} onclick="playSong('{{ track.preview_url }}', '{{ track.name }}', '{{ track.artist_name }}','{{track.album_image}}')" {% else %} onclick="showLoginAlert()" {% endif %}>
+                <div class="card" style="width: 200px; margin-bottom: 50px;">
+                    <img class="card-img-top" src="{{ track.album_image }}" alt="{{ track.album_name }}">
+                    <div class="card-body" style="height: 150px;">
+                        <h2 class="text-green-600 text-base">{{ track.song_name }}</h2>
+                        <h3 class="text-medium">By <strong>{{ track.artist_name }}</strong></h3>
+                        <p class="text-sm">Popularity: {{ track.track_popularity }}</p>
+                        <p class="text-sm line-clamp-1">Genres: {{track.artist_genres}} </p>
+                    </div>
                 </div>
-                {{ track.song_name }} - {{ track.artist_name }}
             </div>
         {% endfor %}
     {% endif %}
 </div>
 {% endblock %}
+
