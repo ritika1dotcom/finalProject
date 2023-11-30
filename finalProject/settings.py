@@ -38,6 +38,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'django_extensions',
     'spotify',
     'users',
 ]
@@ -51,6 +52,9 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
+
+DJANGO_AUTORELOAD = True
+DJANGO_AUTORELOAD_LAZY = True
 
 ROOT_URLCONF = 'finalProject.urls'
 

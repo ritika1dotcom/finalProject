@@ -30,9 +30,10 @@
 
         let csrfToken = getCookie('csrftoken');
 
-        function playSong(previewUrl, song_title, artist_name,album_image) {
+        function playSong(previewUrl, song_title, artist_name,album_image, artist_genres) {
             console.log("Play song function called with URL: ", previewUrl);
             console.log("Album Image URL:", album_image);
+            console.log("Genres",artist_genres);
             
             if (!previewUrl) {
                 console.error("No valid preview URL provided.");
@@ -149,10 +150,11 @@
             </div>
         </nav>
             <!-- Main Content -->
-            <div class="flex-grow overflow-y-scroll no-scrollbar p-3">
+            <div class="flex-grow scrollable-content p-3">
                 {% block content %}
                 <!-- Default content if no block content provided by a child template. Can be left empty if not needed -->
                 {% endblock %}
+            
             </div>
 
             <!-- Music Player  -->

@@ -4,3 +4,10 @@
     margin: 0px;
     padding: 0; /* Dark background color */
 }
+.scrollable-content {
+    height: 150px;
+    }
+
+.scrollable-content::-webkit-scrollbar {
+    display: none;
+}

@@ -5,13 +5,13 @@
     {% if tracks %}
         {% for track in tracks %}
             <div class="song flex items-center">
-                <button onclick="playSong('{{ track.preview_url }}', '{{ track.song_name }}', '{{ track.artist_name }}', '{{ track.album_image }}')" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-1 px-2 rounded">
+                <button onclick="playSong('{{ track.preview_url }}', '{{ track.song_name }}', '{{ track.artist_name }}', '{{ track.album_image }}', '{{track.artist_genres}}')" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-1 px-2 rounded">
                     Play
                 </button>  
                 <div class="text-center">
                     <img src="{{ track.album_image }}" alt="{{ track.album_name }}" style="width: 50px; height: 50px;">
                 </div>
-                {{ track.song_name }} - {{ track.artist_name }}
+                {{ track.song_name }} - {{ track.artist_name }} - {{track.artist_genres}}
             </div>
         {% endfor %}
     {% endif %}
