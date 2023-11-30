@@ -45,13 +45,6 @@ def search_song(request):
 
 
 def featured_music(request):
-    # Check if the data is already in the cache
-    cache_key = 'featured_music_data'
-    cached_data = cache.get(cache_key)
-
-    if cached_data is not None:
-        # If data is found in the cache, use it
-        return render(request, 'home.html', {'featured_tracks': cached_data})
 
     # If not found in the cache, fetch a list of featured playlists
     playlists = sp.featured_playlists(limit=20)
@@ -88,9 +81,6 @@ def featured_music(request):
             "album_image": album_image_url,
             "preview_url": track.get("preview_url"),
         })
-
-    # Store the fetched data in the cache for future requests
-    cache.set(cache_key, featured_tracks, timeout=3600)  # Cache for 1 hour (adjust as needed)
 
     return render(request, 'home.html', {'featured_tracks': featured_tracks})
 
