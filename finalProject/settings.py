@@ -25,6 +25,9 @@ SECRET_KEY = 'django-insecure-sv6tgd4nsgi)&)g5a^-yyw&2ms@c9z!7^0#49!)&ze%gddcax3
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
+DJANGO_USE_WATCHMAN = True
+DJANGO_AUTORELOAD = True
+DJANGO_AUTORELOAD_LAZY = True
 
 ALLOWED_HOSTS = []
 
@@ -52,8 +55,7 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
-DJANGO_AUTORELOAD = True
-DJANGO_AUTORELOAD_LAZY = True
+
 
 ROOT_URLCONF = 'finalProject.urls'
 
