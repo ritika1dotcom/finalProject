@@ -8,27 +8,39 @@
         {% else %}
             <h2 class="font-semibold text-lg py-2">Welcome, Guest!</h2>
         {% endif %}
-        
-        
+
         {% for playlist in featured_playlists %}
             <h2 class="text-lg font-semibold py-5">{{ playlist.playlist_name }}</h2>
-            <div class="flex flex-row gap-4 px-5 overflow-x-scroll" style="width: 1200px">
-                {% for track in playlist.tracks %}
-                    <div {% if user.is_authenticated %} onclick="playSong('{{ track.preview_url }}', '{{ track.name }}', '{{ track.artist_name }}','{{track.album_image}}')" {% else %} onclick="showLoginAlert()" {% endif %}>
-                        <div class="card" style="width: 200px; margin-bottom: 50px;">
-                            <img class="card-img-top" style="height: 150px;" src="{{ track.album_image }}" alt="{{ track.album_name }}">
-                            <div class="card-body" style="height: 150px;">
-                                <h2 class="text-green-600 text-base">{{ track.name }}</h2>
-                                <h3 class="text-medium">By <strong>{{ track.artist_name }}</strong></h3>
-                                <p class="text-sm">Popularity: {{ track.track_popularity }}</p>
-                                <p class="text-sm line-clamp-1">Genres: {{track.artist_genres}} </p>
+            <div id="carouselExampleControls_{{ playlist.playlist_name }}" class="carousel carousel-dark slide" data-bs-ride="carousel">
+                <div class="carousel-inner">
+
+                    {% for track in playlist.tracks %}
+                        <div class="carousel-item {% if forloop.first %}active{% endif %}">
+                            <div class="card-wrapper container-sm d-flex justify-content-around">
+                                <div class="card" style="width: 18rem;" {% if user.is_authenticated %} onclick="playSong('{{ track.preview_url }}', '{{ track.name }}', '{{ track.artist_name }}','{{track.album_image}}')" {% else %} onclick="showLoginAlert()" {% endif %}>
+                                    <img src="{{ track.album_image }}" class="card-img-top" style="height: 150px;" alt="{{ track.album_name }}">
+                                    <div class="card-body" style="height: 150px;">
+                                        <h5 class="card-title">{{ track.name }}</h5>
+                                        <h3 class="text-medium">By <strong>{{ track.artist_name }}</strong></h3>
+                                        <p class="text-sm">Popularity: {{ track.track_popularity }}</p>
+                                        <p class="text-sm line-clamp-1">Genres: {{ track.artist_genres}} </p>
+                                    </div>
+                                </div>
                             </div>
                         </div>
-                    </div>
-                {% endfor %}
+                    {% endfor %}
+
+                </div>
+                <button class="carousel-control-prev" type="button" data-bs-target="#carouselExampleControls_{{ playlist.playlist_name }}" data-bs-slide="prev">
+                    <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                    <span class="visually-hidden">Previous</span>
+                </button>
+                <button class="carousel-control-next" type="button" data-bs-target="#carouselExampleControls_{{ playlist.playlist_name }}" data-bs-slide="next">
+                    <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                    <span class="visually-hidden">Next</span>
+                </button>
             </div>
         {% endfor %}
-        
     </section>
 </div>
 
@@ -36,6 +48,12 @@
     function showLoginAlert() {
         alert("Please log in to access this feature.");
         // You can add more sophisticated handling, e.g., redirect to the login page
+    }
+
+    function playSong(previewUrl, name, artistName, albumImage) {
+        // Add your playSong logic here
+        console.log('Playing song:', name, 'by', artistName);
+        // You can implement audio playback or any other functionality
     }
 </script>
 
