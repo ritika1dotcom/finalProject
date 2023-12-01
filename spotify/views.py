@@ -7,6 +7,7 @@ import random
 from users.models import PlayHistory
 from django.contrib.auth.models import User
 from itertools import chain, combinations
+import time
 
 # Fetch client credentials from settings
 SPOTIPY_CLIENT_ID = settings.SPOTIPY_CLIENT_ID
@@ -43,42 +44,60 @@ def search_song(request):
 
     return render(request, 'search.html', {'tracks': tracks})
 
+import random
+
 def featured_music(request):
-    # Fetch a list of featured playlists
-    playlists = sp.featured_playlists(limit=20)  # You can adjust the limit as needed
-    
-    # If no playlists were found, return an empty list to the template
-    if not playlists['playlists']['items']:
-        return render(request, 'home.html', {'featured_tracks': []})
-    
-    # Randomly select a playlist
-    selected_playlist = random.choice(playlists['playlists']['items'])
-    playlist_uri = selected_playlist['uri']
+    # Define a list of keywords to search for in playlist names
+    keywords = ['Nepali', 'Bollywood', 'K-pop', 'Chinese', 'Japanese', 'Hollywood']
 
-    # Fetch tracks from the selected playlist
-    tracks_data = sp.playlist_tracks(playlist_uri)["items"]
+    # Fetch playlists for each keyword
+    featured_playlists = []
+    for keyword in keywords:
+        # Fetch a list of featured playlists for the current keyword
+        playlists = sp.search(q=keyword, type='playlist', limit=5)
 
-    # Extract essential details for each track
-    featured_tracks = []
-    for track_data in tracks_data:
-        track = track_data["track"]
-        
-        # Get the track's main artist's details
-        artist_uri = track["artists"][0]["uri"]
-        artist_info = sp.artist(artist_uri)
-        album_image_url = track["album"]["images"][0]["url"] if track["album"]["images"] else None
+        # If no playlists were found for the keyword, skip to the next one
+        if not playlists['playlists']['items']:
+            continue
 
-        featured_tracks.append({
-            "uri": track["uri"],
-            "name": track["name"],
-            "artist_name": track["artists"][0]["name"],
-            "artist_popularity": artist_info["popularity"],
-            "artist_genres": artist_info["genres"],
-            "album_name": track["album"]["name"],
-            "track_popularity": track["popularity"],
-            "album_image" : album_image_url,
-            "preview_url": track.get("preview_url") 
+        # Extract essential details for each playlist
+        playlist_data = random.choice(playlists['playlists']['items'])
+        playlist_uri = playlist_data['uri']
+        playlist_name = playlist_data['name']
+
+        # Fetch all tracks from the selected playlist
+        all_tracks_data = sp.playlist_tracks(playlist_uri)["items"]
+
+        # Randomly select 10 tracks from all tracks
+        selected_tracks_data = random.sample(all_tracks_data, min(10, len(all_tracks_data)))
+
+        # Extract essential details for each selected track in the playlist
+        featured_tracks = []
+        for track_data in selected_tracks_data:
+            track = track_data["track"]
+            
+            # Get the track's main artist's details
+            artist_uri = track["artists"][0]["uri"]
+            artist_info = sp.artist(artist_uri)
+            album_image_url = track["album"]["images"][0]["url"] if track["album"]["images"] else None
+
+            featured_tracks.append({
+                "uri": track["uri"],
+                "name": track["name"],
+                "artist_name": track["artists"][0]["name"],
+                "artist_popularity": artist_info["popularity"],
+                "artist_genres": artist_info["genres"],
+                "album_name": track["album"]["name"],
+                "track_popularity": track["popularity"],
+                "album_image": album_image_url,
+                "preview_url": track.get("preview_url") 
+            })
+
+        # Add the playlist details along with its tracks to the featured_playlists list
+        featured_playlists.append({
+            "playlist_name": playlist_name,
+            "tracks": featured_tracks,
         })
-        # print("featured tracks",featured_tracks);
+        print('featured', featured_playlists);
 
-    return render(request, 'home.html', {'featured_tracks': featured_tracks})
+    return render(request, 'home.html', {'featured_playlists': featured_playlists})
