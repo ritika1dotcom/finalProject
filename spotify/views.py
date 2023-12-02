@@ -269,9 +269,6 @@ def recommend_songs(song_data, association_rules, user_obj):
     return recommendations
 
 
-
-
-
 def recommend_song(request, username):
     user_obj = get_object_or_404(User, username=username)
     min_support_threshold = 0.2
@@ -287,12 +284,12 @@ def recommend_song(request, username):
 
     # If there are no recommendations, generate a random playlist
     if not recommendations:
-        # random_recommendations = generate_random_recommendations(min_confidence)
-        # random_selection = random.sample(random_recommendations, min(10, len(random_recommendations)))
+        random_recommendations = generate_random_recommendations(min_confidence)
+        random_selection = random.sample(random_recommendations, min(10, len(random_recommendations)))
     
         context = {
             'user_obj': user_obj,
-            # 'recommended_songs': random_selection,
+            'recommended_songs': random_selection,
         }
     else:
         context = {
@@ -302,17 +299,17 @@ def recommend_song(request, username):
 
     return render(request, 'collections.html', context)
 
-# def generate_random_recommendations(min_confidence):
-#     # Generate a list of random songs with high confidence
-#     all_music = get_all_songs()
-#     # num_recommendations = min(10, len(all_music))  # Limit to 15 songs or the number of available tracks
-#     random_songs = get_random_songs(10, all_music)
-#     random_recommendations = [{'song': song, 'confidence': min_confidence * 100} for song in random_songs]
-#     return random_recommendations
+def generate_random_recommendations(min_confidence):
+    # Generate a list of random songs with high confidence
+    all_music = get_all_songs()
+    # num_recommendations = min(10, len(all_music))  # Limit to 15 songs or the number of available tracks
+    random_songs = get_random_songs(10, all_music)
+    random_recommendations = [{'song': song, 'confidence': min_confidence * 100} for song in random_songs]
+    return random_recommendations
 
-# def get_random_songs(num_songs, all_music):
-#     # Extract song names from the featured tracks
-#     all_songs = [track['name'] for track in all_music]
+def get_random_songs(num_songs, all_music):
+    # Extract song names from the featured tracks
+    all_songs = [track['name'] for track in all_music]
     
-#     # Replace this with your logic to fetch random songs (e.g., from a database or API)
-#     return random.sample(all_songs, num_songs)
+    # Replace this with your logic to fetch random songs (e.g., from a database or API)
+    return random.sample(all_songs, num_songs)
