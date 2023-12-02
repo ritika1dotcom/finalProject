@@ -122,9 +122,19 @@
                     <li class="nav-item active">
                         <a class="nav-link" href="{% url 'home' %}">Home <span class="sr-only">(current)</span></a>
                     </li>
+                    {% if user.is_authenticated %}
                     <li class="nav-item">
-                        <a class="nav-link" href="#">Personalized</a>
+                        <a href="{% url 'recommend_song'  request.user.username %}" class="nav-link" >
+                            Personalized
+                        </a>
                     </li>
+                    {% else %}
+                    <li>
+                        <a href="#" data-bs-toggle="modal" data-bs-target="#loginModal">
+                            Personalized
+                        </a>
+                    </li>
+                    {% endif %}
                     {% if user.is_authenticated %}
                     <li class="nav-item">
                         <a href="{% url 'user_song_history'  request.user.username %}" class="nav-link" >

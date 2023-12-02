@@ -72,7 +72,7 @@ def add_song_history(request):
     
         if not song_title or not artist_name:
             return JsonResponse({'status': 'error', 'message': 'Missing song details'}, status=400)
-        
+        print("play history",PlayHistory)
         PlayHistory.objects.create(
             user=request.user,
             song_title=song_title,
