@@ -40,4 +40,32 @@
       {% endif %}
     </div>
   </div>
+
+  <h2>User-Song Play Count Data</h2>
+
+  <table  id="playCountTable" class="display">
+    <thead>
+        <tr>
+            <th>User ID</th>
+            <th>Song ID</th>
+            <th>Play Count</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for entry in user_song_list %}
+            <tr>
+                <td>{{ entry.user_id }}</td>
+                <td>{{ entry.song_id }}</td>
+                <td>{{ entry.play_count }}</td>
+            </tr>
+        {% endfor %}
+    </tbody>
+</table>
+    <script>
+      $(document).ready(function() {
+          // Initialize DataTable
+          $('#playCountTable').DataTable();
+      });
+  </script>
+
 {% endblock %}
