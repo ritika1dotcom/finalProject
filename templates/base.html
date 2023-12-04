@@ -17,6 +17,17 @@
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400&display=swap" rel="stylesheet">
     <link rel="stylesheet" type="text/css" href="{% static 'styles.css' %}">
 
+    
+
+    <!-- Include jQuery -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+<!-- Include DataTables JavaScript -->
+<script src="https://cdn.datatables.net/1.13.8/js/jquery.dataTables.min.js"></script>
+<link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.13.8/css/jquery.dataTables.min.css">
+
+
+
 
     <!-- Bootstrap and Popper.js -->
     <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.3/dist/umd/popper.min.js"></script>
@@ -101,7 +112,7 @@
                         <i class="fa fa-sign-out" style="color: black;"> Log Out</i> 
                     </a>
                 {% else %}
-                    <a href="#"  data-bs-toggle="modal" data-bs-target="#loginModal">
+                    <a href="{% url 'login' %}"  data-bs-toggle="modal" data-bs-target="#loginModal">
                         <i class="fa fa-sign-in" style="color: black;"> Login</i> 
                     </a>
                 {% endif %}
