@@ -294,24 +294,31 @@ def recommend_song(request, username):
     # Fetch the listening history for the current user
     user_listening_history = listening_history(user_obj)
     song_data = get_user_song_data()
+    data = get_user_song_list()
+    print("list", data)
     # print("song",song_data)
     frequent_itemsets = generate_frequent_itemsets(song_data, min_support_threshold)
     association_rule = generate_association_rules(frequent_itemsets)
     recommendations = recommend_songs(song_data, association_rule,user_obj)
+    random_songs = random.sample(recommendations, min(5, len(recommendations)))
+    matrix = recommend(user_obj,data)
+    print("matrix",matrix)
 
     # If there are no recommendations, generate a random playlist
     if not recommendations:
         random_recommendations = generate_random_recommendations(min_confidence)
-        random_selection = random.sample(random_recommendations, min(10, len(random_recommendations)))
+        random_selection = random.sample(random_recommendations, min(5, len(random_recommendations)))
     
         context = {
             'user_obj': user_obj,
             'recommended_songs': random_selection,
+        
         }
     else:
         context = {
             'user_obj': user_obj,
-            'recommendations': recommendations,
+            'recommendations': random_songs,
+            'matrix': matrix['recommended_songs'],
         }
 
     return render(request, 'collections.html', context)
@@ -327,6 +334,8 @@ def get_user_song_list():
     play_counts = []
     song_titles = []  # New list for song titles
     user_names = []   # New list for user names
+    artist_name = []
+    album_image = []
 
     # Create dictionaries to map usernames and song details to unique numerical identifiers
     user_id_mapping = {}
@@ -364,6 +373,8 @@ def get_user_song_list():
                 song_ids.append(song_id)
                 play_counts.append(1)  # Assuming each play is counted once
                 song_titles.append(song_entry.song_title)
+                artist_name.append(song_entry.artist_name)
+                album_image.append(song_entry.album_image)
                 user_names.append(user.username)
 
                 # Update the user-song mapping
@@ -375,12 +386,13 @@ def get_user_song_list():
         'song_id': song_ids,
         'play_count': play_counts,
         'song_title': song_titles,  # Add song titles to the DataFrame
-        'user_name': user_names     # Add user names to the DataFrame
+        'user_name': user_names,     # Add user names to the DataFrame
+        'artist_name': artist_name,
+        'album_image': album_image,
+
     })
 
     return data
-
-
 
 def matrix_factorization(data, num_users, num_songs, num_factors, num_iterations, learning_rate):
     # Initialize user and item matrices randomly
@@ -404,15 +416,10 @@ def matrix_factorization(data, num_users, num_songs, num_factors, num_iterations
     return user_matrix, song_matrix
 
 
-
-def recommend(request, username):
+def recommend(username,data):
     user_obj = get_object_or_404(User, username=username)
-    data = get_user_song_list()
-    print("list",data)
 
-    # Convert DataFrame to a list of dictionaries for easier rendering in Django templates
-    user_song_list = data.to_dict('records')
-        # Assuming num_users, num_songs, num_factors, num_iterations, and learning_rate are set appropriately
+    # Assuming num_users, num_songs, num_factors, num_iterations, and learning_rate are set appropriately
     num_users = len(data['user_id'].unique())
     num_songs = len(data['song_id'].unique())
     num_factors = 5  # Adjust as needed
@@ -428,13 +435,28 @@ def recommend(request, username):
     # Get indices of top recommended songs
     top_song_indices = np.argsort(user_recommendations)[::-1][:k]  # k is the number of top recommendations
 
-    # Extract song IDs and titles
+    # Extract song IDs, titles, artist names, and album images
     recommended_song_ids = top_song_indices + 1  # Adjusting index
-    recommended_song_titles = [data[data['song_id'] == song_id]['song_title'].iloc[0] for song_id in recommended_song_ids]
+    recommended_song_details = [
+        {
+            'song_id': song_id,
+            'song_title': data[data['song_id'] == song_id]['song_title'].iloc[0],
+            'artist_name': data[data['song_id'] == song_id]['artist_name'].iloc[0],  # Assuming you have 'artist_name' column
+            'album_image': data[data['song_id'] == song_id]['album_image'].iloc[0],  # Assuming you have 'album_image' column
+        }
+        for song_id in recommended_song_ids
+    ]
 
-    print("Recommended Song IDs:", recommended_song_ids)
-    print("Recommended Song Titles:", recommended_song_titles)
+    # print("Recommended Song Details:", recommended_song_details)
 
+    # Convert DataFrame to a list of dictionaries for easier rendering in Django templates
+    user_song_list = data.to_dict('records')
+    context = {
+        'user_song_list' : user_song_list,
+        'recommended_songs': recommended_song_details,
 
+    }
+    return context
     # Pass the processed data to the template
-    return render(request, 'collections.html', {'user_song_list': user_song_list})
+    
+    # return render(request, 'collections.html', {'user_song_list': user_song_list, 'recommended_songs': recommended_song_details})
