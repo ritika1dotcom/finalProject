@@ -1,5 +1,4 @@
 import itertools
-from django.shortcuts import render
 from django.shortcuts import get_object_or_404, render
 import pandas as pd
 import spotipy
@@ -10,7 +9,10 @@ import numpy as np
 from users.models import PlayHistory
 from django.contrib.auth.models import User
 from itertools import chain, combinations
-
+from django.http import HttpResponse, JsonResponse
+from .models import Feedback
+from django.contrib.auth.decorators import login_required
+import json
 
 # Fetch client credentials from settings
 SPOTIPY_CLIENT_ID = settings.SPOTIPY_CLIENT_ID
@@ -192,21 +194,29 @@ def get_user_song_data():
     return user_song_data
 
 
-
 def generate_random_recommendations(min_confidence):
     # Generate a list of random songs with high confidence
     all_music = get_all_songs()
-    # num_recommendations = min(10, len(all_music))  # Limit to 15 songs or the number of available tracks
-    random_songs = get_random_songs(10, all_music)
-    random_recommendations = [{'song': song, 'confidence': min_confidence * 100} for song in random_songs]
+    
+    random_songs = get_random_songs(all_music)
+    random_recommendation = random.sample(random_songs, min(5, len(random_songs)))
+    random_recommendations = [{'song': song, 'song_details': all_music[song]} for song in random_recommendation]
     return random_recommendations
 
-def get_random_songs(num_songs, all_music):
+def generate_random_matrix(min_confidence):
+    # Generate a list of random songs with high confidence
+    all_music = get_all_songs()
+    random_songs = get_random_songs(all_music)
+    random_matrix = random.sample(random_songs, min(5, len(random_songs)))
+    random_recommendation_matrix = [{'song': song, 'song_details': all_music[song]} for song in random_matrix]
+    return random_recommendation_matrix
+
+def get_random_songs(all_music):
     # Extract song names from the featured tracks
-    all_songs = [track['name'] for track in all_music]
-    
+    all_songs = list(all_music.keys())
+
     # Replace this with your logic to fetch random songs (e.g., from a database or API)
-    return random.sample(all_songs, num_songs)
+    return all_songs
 
 
 def generate_frequent_itemsets(user_song_data, min_support):
@@ -306,12 +316,13 @@ def recommend_song(request, username):
 
     # If there are no recommendations, generate a random playlist
     if not recommendations:
-        random_recommendations = generate_random_recommendations(min_confidence)
-        random_selection = random.sample(random_recommendations, min(5, len(random_recommendations)))
-    
+        song = generate_random_recommendations(0.5)
+        random_recommendation_matrix = generate_random_matrix(0.5)
+        print("song",song)
         context = {
             'user_obj': user_obj,
-            'recommended_songs': random_selection,
+            'recommended_songs': song,
+            'random_recommendation_matrix' : random_recommendation_matrix,
         
         }
     else:
@@ -460,3 +471,19 @@ def recommend(username,data):
     # Pass the processed data to the template
     
     # return render(request, 'collections.html', {'user_song_list': user_song_list, 'recommended_songs': recommended_song_details})
+
+
+
+@login_required  # Decorator to ensure the user is authenticated
+def submit_feedback(request, username):
+    user = get_object_or_404(User, username=username) 
+    if request.method == 'POST':
+        user = request.user
+        preferred_algorithm = request.POST.get('algorithm')
+
+        # Save the feedback to the database
+        Feedback.objects.create(user=user, algorithm=preferred_algorithm)
+
+        return JsonResponse({'status': 'success'})
+    else:
+        return JsonResponse({'status': 'error', 'message': 'Invalid request method'})

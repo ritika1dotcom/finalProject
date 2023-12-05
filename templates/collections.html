@@ -26,7 +26,7 @@
           {% endfor %}
         {% else %}
           <p>No Apriori recommendations available. Here's a random playlist:</p>
-          {% for random_song in random_recommendations %}
+          {% for random_song in recommended_songs %}
             <div class="flex flex-row gap-5 py-2">
               <img
                 src="{{ random_song.song_details.album_image }}"
@@ -48,6 +48,7 @@
     <div class="w-[400px] ml-10">
       <h3 class="text-lg font-semibold">Matrix Factorization</h3>
       <div id="matrix-factorization-songs-table">
+        {% if matrix %}
         {% for recommendation in matrix %}
           <div class="flex flex-row gap-5 py-2">
             <img
@@ -62,8 +63,97 @@
             </div>
           </div>
         {% endfor %}
+        {% else %}
+          <p>No Matrix recommendations available. Here's a random playlist:</p>
+          {% for random_song in random_recommendation_matrix %}
+            <div class="flex flex-row gap-5 py-2">
+              <img
+                src="{{ random_song.song_details.album_image }}"
+                alt="{{ random_song.song }}"
+                width="100"
+                height="50"
+              />
+              <div>
+                <p class="text-xl font-bold">{{ random_song.song }}</p>
+                <p class="text-lg font-semibold">Artist Name: {{ random_song.song_details.artist_name }}</p>
+              </div>
+            </div>
+          {% endfor %}
+        {% endif %}
       </div>
     </div>
   </div>
+  <!-- Modal -->
+  <div class="modal fade" id="feedbackModal" tabindex="-1" aria-labelledby="feedbackModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="feedbackModalLabel">Which algorithm did you like best?</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <button type="button" class="btn btn-primary" onclick="submitFeedback('Apriori')">Apriori Algorithm</button>
+          <button type="button" class="btn btn-primary" onclick="submitFeedback('Matrix')">Matrix Factorization</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function submitFeedback(preferredAlgorithm) {
+    // Get the CSRF token from the cookie
+    const csrftoken = getCookie('csrftoken');
+    const username = window.location.pathname.split('/')[2]; // Assumes the URL structure is /spotify/username/...
+
+    // Send feedback data to the backend using AJAX
+    $.ajax({
+        type: 'POST',
+        url: '/spotify/' + username + '/feedback/',  // Update the URL based on your Django URL patterns
+        data: {
+            'algorithm': preferredAlgorithm,
+        },
+        headers: {
+            'X-CSRFToken': csrftoken,
+        },
+        success: function (data) {
+            // Handle success (if needed)
+            alert('Thank you for your feedback! You liked the ' + preferredAlgorithm + ' Algorithm.');
+            // You might want to redirect or perform other actions after feedback
+            window.location.href = "/";
+        },
+        error: function (error) {
+            // Handle error (if needed)
+            console.error('Error submitting feedback:', error);
+        }
+    });
+}
+
+// Function to get the CSRF token from the cookie
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            // Check if this cookie name begins with the given name
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+
+
+    // Show the modal when navigating away from the home page
+    if (window.location.pathname.startsWith("/spotify/")) {
+      window.addEventListener('beforeunload', function (e) {
+        $('#feedbackModal').modal('show');
+      });
+    }
+
+  </script>
 
 {% endblock %}
