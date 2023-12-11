@@ -18,10 +18,10 @@
                         <div class="card" style="width: 200px; margin-bottom: 50px;">
                             <img class="card-img-top" style="height: 150px;" src="{{ track.album_image }}" alt="{{ track.album_name }}">
                             <div class="card-body" style="height: 150px;">
-                                <h2 class="text-green-600 text-base">{{ track.name }}</h2>
+                                <h2 class="text-green-600 text-base line-clamp-1">{{ track.name }}</h2>
                                 <h3 class="text-medium">By <strong>{{ track.artist_name }}</strong></h3>
-                                <p class="text-sm">Popularity: {{ track.track_popularity }}</p>
-                                <p class="text-sm line-clamp-1">Genres: {{track.artist_genres}} </p>
+                                <!-- <p class="text-sm">Popularity: {{ track.track_popularity }}</p>
+                                <p class="text-sm line-clamp-1">Genres: {{track.artist_genres}} </p> -->
                             </div>
                         </div>
                     </div>

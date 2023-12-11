@@ -32,14 +32,6 @@
     <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.3/dist/umd/popper.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.min.js"></script>
 
-    <style>
-        .flex
-        {
-            background-color:;
-        }
-    </style>
-
-
     <script>
             function getCookie(name) {
             let value = "; " + document.cookie;
@@ -112,7 +104,7 @@
 {% endif %}
 
     <div class="flex-col">
-        <div class="flex justify-end px-10 ">
+        <div class="flex justify-end px-10 " style="background-color: #f1e0ce;">
                 {% if user.is_authenticated %}
                 
                     <a href="{% url 'logout' %}" class="">
@@ -127,7 +119,7 @@
         </div>
 
         <!-- Navbar start  -->
-        <nav class="navbar navbar-expand-lg navbar-light bg-light flex flex-row gap-20 px-5" style= "background-color: bisque;">
+        <nav class="navbar navbar-expand-lg flex flex-row gap-20 px-5" style= "background-color: #f1e0ce;">
             <a class="navbar-brand" href="#">
                 <img src="{% static 'images/Vector.png' %}" alt="My Site Logo" class="w-[20px]">
             </a>
@@ -138,30 +130,30 @@
             <div class="collapse navbar-collapse" id="navbarSupportedContent">
                 <ul class="navbar-nav mr-auto">
                     <li class="nav-item active">
-                        <a class="nav-link" href="{% url 'home' %}">Home <span class="sr-only">(current)</span></a>
+                        <a class="navlink" href="{% url 'home' %}">Home <span class="sr-only">(current)</span></a>
                     </li>
                     {% if user.is_authenticated %}
                     <li class="nav-item">
-                        <a href="{% url 'recommend_song'  request.user.username %}" class="nav-link" >
+                        <a href="{% url 'recommend_song'  request.user.username %}" class="navlink px-5" >
                             Personalized
                         </a>
                     </li>
                     {% else %}
                     <li class="nav-item">
-                        <a href="#" data-bs-toggle="modal" data-bs-target="#loginModal" class="nav-link">
+                        <a href="#" data-bs-toggle="modal" data-bs-target="#loginModal" class="navlink">
                             Personalized
                         </a>
                     </li>
                     {% endif %}
                     {% if user.is_authenticated %}
                     <li class="nav-item">
-                        <a href="{% url 'user_song_history'  request.user.username %}" class="nav-link" >
+                        <a href="{% url 'user_song_history'  request.user.username %}" class="navlink" >
                             Profile
                         </a>
                     </li>
                     {% else %}
                     <li class="nav-item">
-                        <a href="#" data-bs-toggle="modal" data-bs-target="#loginModal" class="nav-link">
+                        <a href="#" data-bs-toggle="modal" data-bs-target="#loginModal" class="navlink">
                             Profile
                         </a>
                     </li>
@@ -170,7 +162,7 @@
                 <div class="w-1/3 ml-4 mt-4">
                     <form class="form-inline d-flex my-2 my-lg-0" action="{% url 'search' %}" method="GET">
                         <input class="form-control flex-grow mr-sm-2" type="search" placeholder="Search" aria-label="Search" name="query">
-                        <button class="btn btn-outline-success my-2 my-sm-0 bg-green-600" type="submit">
+                        <button class="btn btn-outline-success my-2 my-sm-0" style="background-color: #a2c5c9;" type="submit">
                             <i class="fa fa-search text-white"></i>
                         </button>
                     </form>
@@ -178,7 +170,7 @@
             </div>
         </nav>
             <!-- Main Content -->
-            <div class="flex-grow p-3">
+            <div class="flex-grow p-3" style="background-color:#ec9a86; ">
                 {% block content %}
                 <!-- Default content if no block content provided by a child template. Can be left empty if not needed -->
                 {% endblock %}

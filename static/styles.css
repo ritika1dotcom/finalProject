@@ -4,3 +4,9 @@
     margin: 0px;
     padding: 0; /* Dark background color */
 }
+.navlink {
+    text-align: center;
+    color: black;
+    padding-left: 4px;
+    margin: auto;
+}
