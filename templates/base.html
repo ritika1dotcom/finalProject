@@ -21,14 +21,24 @@
     <!-- Bootstrap and Font Awesome CSS -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" integrity="sha512-z3gLpd7yknf1YoNbCzqRKc4qyor8gaKU1qmn+CShxbuBusANI9QpRohGBreCFkKxLhei6S9CQXFEbbKuqLg0DA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous">
     
     <!-- Tailwind CSS -->
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.16/dist/tailwind.min.css" rel="stylesheet">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-MrcW6ZMFYlzcLA8Nl+NtUVF0sA7MsXsP1UyJoMp4YLEuNSfAP+JcXn/tWtIaxVXM" crossorigin="anonymous"></script>
     <link rel="stylesheet" type="text/css" href="{% static 'styles.css' %}">
 
+    
+
+    <!-- Include jQuery -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+<!-- Include DataTables JavaScript -->
+<script src="https://cdn.datatables.net/1.13.8/js/jquery.dataTables.min.js"></script>
+<link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.13.8/css/jquery.dataTables.min.css">
 
     <!-- Bootstrap and Popper.js -->
     <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.3/dist/umd/popper.min.js"></script>
@@ -113,7 +123,7 @@
                         <i class="fa fa-sign-out" style="color: black;"> Log Out</i> 
                     </a>
                 {% else %}
-                    <a href="#"  data-bs-toggle="modal" data-bs-target="#loginModal">
+                    <a href="{% url 'login' %}"  data-bs-toggle="modal" data-bs-target="#loginModal">
                         <i class="fa fa-sign-in" style="color: black;"> Login</i> 
                     </a>
                 {% endif %}
@@ -124,7 +134,11 @@
         <nav class="navbar navbar-expand-lg  flex flex-row gap-20 px-5">
 
             <a class="navbar-brand" href="#">
+<<<<<<< HEAD
                 <img src="../static/images/Vector.png" alt="My Site Logo" class="w-[20px]">
+=======
+                <img src="{% static 'images/Vector.png' %}" alt="My Site Logo" class="w-[20px]">
+>>>>>>> ae95a144b0643ae1c6a74b8dc40bb4ee915bd289
             </a>
             <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
                 
@@ -136,9 +150,19 @@
                     <li class="nav-item active">
                         <a class="nav-link" href="{% url 'home' %}">Home <span class="sr-only">(current)</span></a>
                     </li>
+                    {% if user.is_authenticated %}
                     <li class="nav-item">
-                        <a class="nav-link" href="#">Personalized</a>
+                        <a href="{% url 'recommend_song'  request.user.username %}" class="nav-link" >
+                            Personalized
+                        </a>
                     </li>
+                    {% else %}
+                    <li class="nav-item">
+                        <a href="#" data-bs-toggle="modal" data-bs-target="#loginModal" class="nav-link">
+                            Personalized
+                        </a>
+                    </li>
+                    {% endif %}
                     {% if user.is_authenticated %}
                     <li class="nav-item">
                         <a href="{% url 'user_song_history'  request.user.username %}" class="nav-link" >
@@ -146,8 +170,8 @@
                         </a>
                     </li>
                     {% else %}
-                    <li>
-                        <a href="#" data-bs-toggle="modal" data-bs-target="#loginModal">
+                    <li class="nav-item">
+                        <a href="#" data-bs-toggle="modal" data-bs-target="#loginModal" class="nav-link">
                             Profile
                         </a>
                     </li>
