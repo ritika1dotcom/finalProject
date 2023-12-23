@@ -1,4 +1,5 @@
 import itertools
+import traceback
 from django.shortcuts import get_object_or_404, render
 import pandas as pd
 import spotipy
@@ -13,6 +14,7 @@ from django.http import HttpResponse, JsonResponse
 from .models import Feedback
 from django.contrib.auth.decorators import login_required
 import json
+from django.views.decorators.csrf import csrf_exempt
 
 # Fetch client credentials from settings
 SPOTIPY_CLIENT_ID = settings.SPOTIPY_CLIENT_ID
@@ -102,7 +104,7 @@ def featured_music(request):
             "playlist_name": playlist_name,
             "tracks": featured_tracks,
         })
-        print('featured', featured_playlists);
+        # print('featured', featured_playlists);
 
     return render(request, 'home.html', {'featured_playlists': featured_playlists})
 
@@ -305,20 +307,20 @@ def recommend_song(request, username):
     user_listening_history = listening_history(user_obj)
     song_data = get_user_song_data()
     data = get_user_song_list()
-    print("list", data)
+    # print("list", data)
     # print("song",song_data)
     frequent_itemsets = generate_frequent_itemsets(song_data, min_support_threshold)
     association_rule = generate_association_rules(frequent_itemsets)
     recommendations = recommend_songs(song_data, association_rule,user_obj)
     random_songs = random.sample(recommendations, min(5, len(recommendations)))
     matrix = recommend(user_obj,data)
-    print("matrix",matrix)
+    # print("matrix",matrix)
 
     # If there are no recommendations, generate a random playlist
     if not recommendations:
         song = generate_random_recommendations(0.5)
         random_recommendation_matrix = generate_random_matrix(0.5)
-        print("song",song)
+        # print("song",song)
         context = {
             'user_obj': user_obj,
             'recommended_songs': song,
@@ -474,16 +476,40 @@ def recommend(username,data):
 
 
 
+
+@csrf_exempt
 @login_required  # Decorator to ensure the user is authenticated
 def submit_feedback(request, username):
-    user = get_object_or_404(User, username=username) 
+    
+    user = get_object_or_404(User, username=username)
+
     if request.method == 'POST':
-        user = request.user
-        preferred_algorithm = request.POST.get('algorithm')
+        try:
+            data = json.loads(request.body.decode('utf-8'))
+            print(data)
+            algorithm = data.get('data', {}).get('algorithm')
+            print(algorithm)
+            reasons = data.get('data', {}).get('reasons', [])
+            print(reasons,"reasons")
 
-        # Save the feedback to the database
-        Feedback.objects.create(user=user, algorithm=preferred_algorithm)
-
-        return JsonResponse({'status': 'success'})
+            # Create Feedback instance and save to the database
+            feedback = Feedback.objects.create(
+                user=user,
+                algorithm=algorithm,
+                genre='genre' in reasons,
+                mood='mood' in reasons,
+                new_music='new_music' in reasons,
+                artists='artists' in reasons,
+                nostalgia='nostalgia' in reasons,
+            )
+            print(feedback,"feedback")
+            return JsonResponse({'status': 'success'})
+        except json.JSONDecodeError as e:
+            return JsonResponse({'status': 'error', 'message': 'Invalid JSON data'})
+        except Exception as e:
+            # Log the exception
+            print(f"Error processing feedback: {e}")
+            traceback.print_exc()
+            return JsonResponse({'status': 'error', 'message': 'Error processing feedback'})
     else:
         return JsonResponse({'status': 'error', 'message': 'Invalid request method'})

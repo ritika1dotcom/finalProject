@@ -86,74 +86,127 @@
   <!-- Modal -->
   <div class="modal fade" id="feedbackModal" tabindex="-1" aria-labelledby="feedbackModalLabel" aria-hidden="true">
     <div class="modal-dialog">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title" id="feedbackModalLabel">Which algorithm did you like best?</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="feedbackModalLabel">Which algorithm did you like best?</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="feedbackForm">
+                    <!-- Algorithm Selection -->
+                    <div class="mb-4">
+                        <label for="algorithm" class="block text-gray-300">Select Algorithm</label>
+                        <select id="algorithm" name="algorithm" class="border rounded w-full py-2 px-3 text-black bg-gray-300 focus:outline-none focus:border-blue-500" required>
+                            <option value="Apriori">Apriori Algorithm</option>
+                            <option value="Matrix">Matrix Factorization</option>
+                        </select>
+                    </div>
+
+                    <!-- Reasons Checkboxes -->
+                    <div class="mb-4">
+                      <p>Select reasons why you liked the algorithm:</p>
+                      <input type="checkbox" id="genre" name="genre" value="Genre">
+                      <label for="genre">Genre Compatibility</label><br>
+                      <input type="checkbox" id="mood" name="mood" value="Mood">
+                      <label for="mood">Mood Enhancement</label><br>
+                      <input type="checkbox" id="new_music" name="new_music" value="New Music">
+                      <label for="new_music">Discovery of new music</label><br>
+                      <input type="checkbox" id="artists" name="artists" value="Artists">
+                      <label for="artists">Favorite Artists</label><br>
+                      <input type="checkbox" id="nostalgia" name="nostalgia" value="Nostalgia">
+                      <label for="nostalgia">Nostalgia</label><br>
+                      <!-- Add more checkboxes as needed -->
+                  </div>
+                  
+                  
+
+                    <!-- Submit Button -->
+                    <button type="button" onclick="submitFeedback()">Submit</button>
+                </form>
+            </div>
         </div>
-        <div class="modal-body">
-          <button type="button" class="btn btn-primary" onclick="submitFeedback('Apriori')">Apriori Algorithm</button>
-          <button type="button" class="btn btn-primary" onclick="submitFeedback('Matrix')">Matrix Factorization</button>
-        </div>
-      </div>
     </div>
-  </div>
+</div>
 
-  <script>
-    function submitFeedback(preferredAlgorithm) {
-    // Get the CSRF token from the cookie
-    const csrftoken = getCookie('csrftoken');
-    const username = window.location.pathname.split('/')[2]; // Assumes the URL structure is /spotify/username/...
 
-    // Send feedback data to the backend using AJAX
-    $.ajax({
-        type: 'POST',
-        url: '/spotify/' + username + '/feedback/',  // Update the URL based on your Django URL patterns
-        data: {
-            'algorithm': preferredAlgorithm,
-        },
-        headers: {
-            'X-CSRFToken': csrftoken,
-        },
-        success: function (data) {
-            // Handle success (if needed)
-            alert('Thank you for your feedback! You liked the ' + preferredAlgorithm + ' Algorithm.');
-            // You might want to redirect or perform other actions after feedback
-            window.location.href = "/";
-        },
-        error: function (error) {
-            // Handle error (if needed)
-            console.error('Error submitting feedback:', error);
-        }
-    });
+<script>
+  function submitFeedback() {
+      const algorithm = document.getElementById('algorithm').value;
+      const reasons = getSelectedReasons();
+      console.log('Algorithm:', algorithm);
+      console.log('Reasons:', reasons);
+
+      if (algorithm && reasons.length > 0) {
+          // Get the CSRF token from the cookie
+          const csrftoken = getCookie('csrftoken');
+          const username = window.location.pathname.split('/')[2];
+
+          const data = {
+            'algorithm': algorithm,
+            'reasons':reasons ,
+          };
+
+          // Send feedback data to the backend using AJAX
+          $.ajax({
+              type: 'POST',
+              url: '/spotify/' + username + '/feedback/',  // Update the URL based on your Django URL patterns
+              contentType: 'application/json; charset=utf-8',
+              dataType: 'json',
+              data: JSON.stringify({
+                  'data':data,
+              }),
+              headers: {
+                  'X-CSRFToken': csrftoken,
+              },
+              success: function (data) {
+                  // Handle success (if needed)
+                  alert('Thank you for your feedback! You liked the ' + algorithm + ' Algorithm.');
+                  // You might want to redirect or perform other actions after feedback
+                  window.location.href = "/home";
+              },
+              error: function (error) {
+                  // Handle error (if needed)
+                  console.error('Error submitting feedback:', error);
+              }
+          });
+          
+      } else {
+          alert('Please select both algorithm and reasons before submitting.');
+      }
+  }
+
+  function getSelectedReasons() {
+    const checkboxes = document.querySelectorAll('input[type="checkbox"]:checked');
+    const selectedReasons = Array.from(checkboxes).map(checkbox => checkbox.id);
+
+    console.log('Selected Checkboxes:', checkboxes);
+    console.log('Selected Reasons:', selectedReasons);
+
+    return selectedReasons;
 }
 
-// Function to get the CSRF token from the cookie
-function getCookie(name) {
-    let cookieValue = null;
-    if (document.cookie && document.cookie !== '') {
-        const cookies = document.cookie.split(';');
-        for (let i = 0; i < cookies.length; i++) {
-            const cookie = cookies[i].trim();
-            // Check if this cookie name begins with the given name
-            if (cookie.substring(0, name.length + 1) === (name + '=')) {
-                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                break;
-            }
-        }
-    }
-    return cookieValue;
-}
 
+  // Function to get the CSRF token from the cookie
+  function getCookie(name) {
+      let cookieValue = null;
+      if (document.cookie && document.cookie !== '') {
+          const cookies = document.cookie.split(';');
+          for (let i = 0; i < cookies.length; i++) {
+              const cookie = cookies[i].trim();
+              if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                  cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                  break;
+              }
+          }
+      }
+      return cookieValue;
+  }
 
-
-    // Show the modal when navigating away from the home page
-    if (window.location.pathname.startsWith("/spotify/")) {
+  if (window.location.pathname.startsWith("/spotify/")) {
       window.addEventListener('beforeunload', function (e) {
-        $('#feedbackModal').modal('show');
+          $('#feedbackModal').modal('show');
       });
-    }
-
-  </script>
+  }
+</script>
 
 {% endblock %}
