@@ -15,6 +15,7 @@ from .models import Feedback
 from django.contrib.auth.decorators import login_required
 import json
 from django.views.decorators.csrf import csrf_exempt
+from django.db.models import Sum
 
 # Fetch client credentials from settings
 SPOTIPY_CLIENT_ID = settings.SPOTIPY_CLIENT_ID
@@ -475,8 +476,6 @@ def recommend(username,data):
     # return render(request, 'collections.html', {'user_song_list': user_song_list, 'recommended_songs': recommended_song_details})
 
 
-
-
 @csrf_exempt
 @login_required  # Decorator to ensure the user is authenticated
 def submit_feedback(request, username):
@@ -513,3 +512,42 @@ def submit_feedback(request, username):
             return JsonResponse({'status': 'error', 'message': 'Error processing feedback'})
     else:
         return JsonResponse({'status': 'error', 'message': 'Invalid request method'})
+    
+
+def chart(request):
+    print('Chart view called')
+    # Aggregate feedback data for all users and algorithms
+    # Aggregate feedback data for all users and algorithms
+    feedback_data = Feedback.objects.values('user__username', 'algorithm', 'genre', 'mood', 'new_music', 'artists', 'nostalgia')
+
+    # Convert boolean values to actual booleans
+    for entry in feedback_data:
+        for key in ['genre', 'mood', 'new_music', 'artists', 'nostalgia']:
+            entry[key] = bool(entry[key])
+
+    feedback_data_list = list(feedback_data)
+
+    return JsonResponse({'feedback_data': feedback_data_list}, safe=False)
+def chart_page(request):
+    # Get the JSON data from the other view
+    json_data = chart(request).content.decode('utf-8')
+
+    # Parse the JSON string into a Python object
+    feedback_data = json.loads(json_data)['feedback_data']
+
+    # Convert boolean values to lowercase strings
+    transformed_data = [
+        {
+            'user__username': entry['user__username'],
+            'algorithm': entry['algorithm'],
+            'genre': str(entry['genre']).lower(),
+            'mood': str(entry['mood']).lower(),
+            'new_music': str(entry['new_music']).lower(),
+            'artists': str(entry['artists']).lower(),
+            'nostalgia': str(entry['nostalgia']).lower(),
+        }
+        for entry in feedback_data
+    ]
+    
+
+    return render(request, 'chart.html', {'json_data': transformed_data})

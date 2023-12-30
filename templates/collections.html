@@ -7,7 +7,7 @@
   <div class="flex">
     <!-- Apriori Playlist -->
     <div class="w-[400px]">
-      <h3 class="text-lg font-semibold">Apriori Algorithm</h3>
+      <h3 class="text-lg font-semibold">Playlist 1</h3>
       <div id="apriori-songs-table">
         {% if recommendations %}
           {% for recommendation in recommendations %}
@@ -46,7 +46,7 @@
 
     <!-- Matrix Factorization Recommendations -->
     <div class="w-[400px] ml-10">
-      <h3 class="text-lg font-semibold">Matrix Factorization</h3>
+      <h3 class="text-lg font-semibold">Playlist 2</h3>
       <div id="matrix-factorization-songs-table">
         {% if matrix %}
         {% for recommendation in matrix %}
@@ -97,8 +97,8 @@
                     <div class="mb-4">
                         <label for="algorithm" class="block text-gray-300">Select Algorithm</label>
                         <select id="algorithm" name="algorithm" class="border rounded w-full py-2 px-3 text-black bg-gray-300 focus:outline-none focus:border-blue-500" required>
-                            <option value="Apriori">Apriori Algorithm</option>
-                            <option value="Matrix">Matrix Factorization</option>
+                            <option value="Apriori">Playlist 1</option>
+                            <option value="Matrix">Playlist 2</option>
                         </select>
                     </div>
 
