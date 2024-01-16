@@ -41,7 +41,7 @@
 
         let csrfToken = getCookie('csrftoken');
 
-        function playSong(previewUrl, song_title, artist_name,album_image) {
+        function playSong(previewUrl, song_title, artist_name,album_image, card) {
             console.log("Play song function called with URL: ", previewUrl);
             console.log("Album Image URL:", album_image);
             
@@ -53,6 +53,7 @@
             const audioPlayer = document.getElementById('audio-player');
             audioPlayer.src = previewUrl;
             audioPlayer.play();
+
 
             // Save song details to SongHistory if the user is authenticated
             fetch("/user/add_song_history/", {
@@ -81,6 +82,18 @@
             .catch(error => {
                 console.error('Fetch error:', error);
             });
+        }
+        function playAndMakeTransparent(element, previewUrl, trackName, artistName, albumImage) {
+            // Set initial opacity
+            element.style.opacity = '0.5';
+
+            // Play the song (modify this function as needed)
+            playSong(previewUrl, trackName, artistName, albumImage);
+
+            // Set a timeout to revert the opacity after 30 seconds
+            setTimeout(function() {
+                element.style.opacity = '1'; // Revert to original opacity
+            }, 30000); // 30 seconds in milliseconds
         }
     </script>
 </head>
