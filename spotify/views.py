@@ -2,6 +2,7 @@ import itertools
 import traceback
 from django.shortcuts import get_object_or_404, render
 import pandas as pd
+import requests
 import spotipy
 from spotipy.oauth2 import SpotifyClientCredentials
 from django.conf import settings
@@ -9,13 +10,13 @@ import random
 import numpy as np
 from users.models import PlayHistory
 from django.contrib.auth.models import User
-from itertools import chain, combinations
-from django.http import HttpResponse, JsonResponse
+from itertools import combinations
+from django.http import JsonResponse
 from .models import Feedback
 from django.contrib.auth.decorators import login_required
 import json
 from django.views.decorators.csrf import csrf_exempt
-from django.db.models import Sum
+
 
 # Fetch client credentials from settings
 SPOTIPY_CLIENT_ID = settings.SPOTIPY_CLIENT_ID
@@ -158,7 +159,8 @@ def listening_history(user):
         {
             "song_title": entry.song_title,
             "artist_name": entry.artist_name,  # Replace with the actual field name in your model
-            "album_image": entry.album_image,  # Replace with the actual field name in your model
+            "album_image": entry.album_image,
+            "preview_url" : entry.preview_url,  # Replace with the actual field name in your model
         }
         for entry in user_history_entries
     ]
@@ -168,12 +170,11 @@ def listening_history(user):
         (
             entry["song_title"],
             entry["artist_name"],
-            entry["album_image"]
+            entry["album_image"],
+            entry["preview_url"],
         )
         for entry in user_history
     ]
-
-    # print("listening history", user_history_tuples)
     return user_history_tuples
 
 def get_user_song_data():
@@ -186,7 +187,7 @@ def get_user_song_data():
     # Iterate through each user
     for user in users:
         # Fetch the listening history entries for the user
-        user_history_entries = PlayHistory.objects.filter(user=user).values_list('song_title', 'artist_name', 'album_image')
+        user_history_entries = PlayHistory.objects.filter(user=user).values_list('song_title', 'artist_name', 'album_image','preview_url')
 
         # Convert the queryset of tuples to a set of tuples
         user_history_entries = {tuple(entry) for entry in user_history_entries}
@@ -265,7 +266,7 @@ def generate_association_rules(frequent_itemsets):
 
     return rules
 
-def recommend_songs(song_data, association_rules, user_obj):
+def recommend_songs(song_data, association_rules, user_obj, sp):
     recommendations = []
 
     # Convert the user's listening history to a set of tuples
@@ -284,25 +285,50 @@ def recommend_songs(song_data, association_rules, user_obj):
                     continue
 
                 # Extract song title, artist_name, and album_image from the song tuple
-                song_title, artist_name, album_image = song_tuple
+                song_title, artist_name, album_image, _ = song_tuple
 
-                if artist_name and album_image:
+                # Make an API request to Spotify to get additional details including preview_url
+                track_results = sp.search(q=f"{song_title} {artist_name}", type='track', limit=1)
+
+                if track_results['tracks']['items']:
+                    track = track_results['tracks']['items'][0]
+                    preview_url = track.get('preview_url')
+
                     recommendations.append({
                         'song': song_title,
                         'confidence': confidence,
                         'song_details': {
                             'artist_name': artist_name,
                             'album_image': album_image,
+                            'preview_url': preview_url,
                         },
                     })
 
     return recommendations
 
 
+def fetch_preview_url(song_id):
+    # Replace 'YOUR_SPOTIFY_API_KEY' with your actual Spotify API key
+    spotify_api_key = sp
+
+    # Make a request to Spotify API to get track details including preview_url
+    url = f'https://api.spotify.com/v1/tracks/{song_id}'
+    headers = {'Authorization': f'Bearer {spotify_api_key}'}
+    response = requests.get(url, headers=headers)
+
+    if response.status_code == 200:
+        track_data = response.json()
+        preview_url = track_data.get('preview_url')
+        return preview_url
+    else:
+        return None
+
+
 def recommend_song(request, username):
     user_obj = get_object_or_404(User, username=username)
     min_support_threshold = 0.2
     min_confidence = 0.5
+    sp = spotipy.Spotify(auth_manager=SpotifyClientCredentials(client_id=SPOTIPY_CLIENT_ID, client_secret=SPOTIPY_CLIENT_SECRET))
 
     # Fetch the listening history for the current user
     user_listening_history = listening_history(user_obj)
@@ -312,7 +338,7 @@ def recommend_song(request, username):
     # print("song",song_data)
     frequent_itemsets = generate_frequent_itemsets(song_data, min_support_threshold)
     association_rule = generate_association_rules(frequent_itemsets)
-    recommendations = recommend_songs(song_data, association_rule,user_obj)
+    recommendations = recommend_songs(song_data, association_rule,user_obj,sp)
     random_songs = random.sample(recommendations, min(5, len(recommendations)))
     matrix = recommend(user_obj,data)
     # print("matrix",matrix)
@@ -350,6 +376,7 @@ def get_user_song_list():
     user_names = []   # New list for user names
     artist_name = []
     album_image = []
+    preview_url = []
 
     # Create dictionaries to map usernames and song details to unique numerical identifiers
     user_id_mapping = {}
@@ -390,6 +417,7 @@ def get_user_song_list():
                 artist_name.append(song_entry.artist_name)
                 album_image.append(song_entry.album_image)
                 user_names.append(user.username)
+                preview_url.append(song_entry.preview_url)
 
                 # Update the user-song mapping
                 user_song_mapping[user_song_key] = len(user_ids) - 1
@@ -403,9 +431,9 @@ def get_user_song_list():
         'user_name': user_names,     # Add user names to the DataFrame
         'artist_name': artist_name,
         'album_image': album_image,
+        'preview_url' : preview_url,
 
     })
-
     return data
 
 def matrix_factorization(data, num_users, num_songs, num_factors, num_iterations, learning_rate):
@@ -457,6 +485,7 @@ def recommend(username,data):
             'song_title': data[data['song_id'] == song_id]['song_title'].iloc[0],
             'artist_name': data[data['song_id'] == song_id]['artist_name'].iloc[0],  # Assuming you have 'artist_name' column
             'album_image': data[data['song_id'] == song_id]['album_image'].iloc[0],  # Assuming you have 'album_image' column
+            'preview_url': fetch_preview_url(song_id),   # Assuming you have 'album_image' column
         }
         for song_id in recommended_song_ids
     ]
@@ -471,9 +500,6 @@ def recommend(username,data):
 
     }
     return context
-    # Pass the processed data to the template
-    
-    # return render(request, 'collections.html', {'user_song_list': user_song_list, 'recommended_songs': recommended_song_details})
 
 
 @csrf_exempt

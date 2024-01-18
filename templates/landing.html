@@ -10,11 +10,42 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Landing Page</title>
+    <script>
+      function showLoadingSpinner() {
+         // Show overlay
+        document.querySelector('.overlay').style.display = 'block';
+
+          // Show loading spinner
+        document.getElementById('loadingSpinner').style.display = 'block';
+        setTimeout(function() {
+          window.location.href = "{% url 'home' %}";
+        },2000);
+      }
+
+      // Assume this function is called when the home page is loaded
+      function hideLoadingSpinner() {
+         // Hide overlay
+        document.querySelector('.overlay').style.display = 'none';
+
+        // Hide loading spinner
+        document.getElementById('loadingSpinner').style.display = 'none';
+      }
+    </script>
     <style>
       body{
         width: 100%;
         background-image: url(static/images/aaaa2.png);
         background-repeat: no-repeat;
+        }
+        .overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(255, 255, 255, 0.5); /* Transparent background color */
+            display: none;
+            z-index: 99;
         }
         .d-block{
             padding:0;
@@ -70,9 +101,40 @@
         transform: translateY(-100%);
         color: black; /* Change text color to white on hover */
       }
+      body.loading {
+        background-color: rgba(255, 255, 255, 0.9); /* Transparent background color */
+        overflow: hidden;
+      }
+      .loader {
+        border: 10px solid #f3f3f3;
+        border-radius: 50%;
+        border-top: 10px solid #3498db;
+        width: 90px;
+        height: 90px;
+        -webkit-animation: spin 2s linear infinite; /* Safari */
+        animation: spin 2s linear infinite;
+        display: none; /* Initially hide the loader */
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        z-index: 1000;
+      }
+
+        /* Safari */
+      @-webkit-keyframes spin {
+        0% { -webkit-transform: rotate(0deg); }
+        100% { -webkit-transform: rotate(360deg); }
+      }
+
+      @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+      }
     </style>
 </head>
 <body>
+  <div class="overlay"></div>
   <div>
     <div class="flex justify-start px-10">
       <div class="nav-item">
@@ -87,11 +149,12 @@
             <h1 style="font-size: 40px;"><b>Connected</b> thru'
               <br> language of <b>music</b></h1>
           
-          <a href="{% url 'home' %}">
+          <a href="{% url 'home' %}" onclick="showLoadingSpinner()">
             <button type="button"  class="cta-button rounded">
               <span>Explore</span>
             </button>
           </a>
+          <div id="loadingSpinner" class="loader"></div>
         </div>
             <div class="col-md-6 flex justify-end">
               <div id="carouselExampleInterval" class="carousel slide" data-bs-ride="carousel">

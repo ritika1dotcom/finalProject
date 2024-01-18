@@ -11,6 +11,7 @@ class PlayHistory(models.Model):
     song_title = models.CharField(max_length=200)
     artist_name = models.CharField(max_length=200)
     album_image = models.URLField(max_length=500, null=True, blank=True)  # Allow null and blank for album_image
+    preview_url = models.URLField(max_length=500, null=True, blank=True)
     date_played = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):

@@ -11,7 +11,7 @@
       <div id="apriori-songs-table">
         {% if recommendations %}
           {% for recommendation in recommendations %}
-            <div class="flex flex-row gap-5 py-2">
+            <div class="flex flex-row gap-5 py-2" onclick="playAndMakeTransparent(this, '{{ recommendation.song_details.preview_url }}', '{{ recommendation.song }}', '{{ recommendation.song_details.artist_name }}','{{recommendation.song_details.album_image}}')">
               <img
                 src="{{ recommendation.song_details.album_image }}"
                 alt="{{ recommendation.song }}"
@@ -27,7 +27,7 @@
         {% else %}
           <p>No Apriori recommendations available. Here's a random playlist:</p>
           {% for random_song in recommended_songs %}
-            <div class="flex flex-row gap-5 py-2">
+            <div class="flex flex-row gap-5 py-2" onclick="playAndMakeTransparent(this, '{{ random_song.song_details.preview_url }}', '{{ random_song.song }}', '{{ random_song.song_details.artist_name }}','{{random_song.song_details.album_image}}')">
               <img
                 src="{{ random_song.song_details.album_image }}"
                 alt="{{ random_song.song }}"
@@ -50,7 +50,7 @@
       <div id="matrix-factorization-songs-table">
         {% if matrix %}
         {% for recommendation in matrix %}
-          <div class="flex flex-row gap-5 py-2">
+          <div class="flex flex-row gap-5 py-2" onclick="playAndMakeTransparent(this, '{{ recommendation.preview_url }}', '{{ recommendation.song_title }}', '{{ recommendation.artist_name }}','{{recommendation.album_image}}')">
             <img
               src="{{ recommendation.album_image }}"
               alt="{{ recommendation.song_title }}"
@@ -66,7 +66,7 @@
         {% else %}
           <p>No Matrix recommendations available. Here's a random playlist:</p>
           {% for random_song in random_recommendation_matrix %}
-            <div class="flex flex-row gap-5 py-2">
+            <div class="flex flex-row gap-5 py-2" onclick="playAndMakeTransparent(this, '{{ random_song.preview_url }}', '{{ random_song.song }}', '{{ random_song.artist_name }}','{{random_song.album_image}}')">
               <img
                 src="{{ random_song.song_details.album_image }}"
                 alt="{{ random_song.song }}"
@@ -83,6 +83,8 @@
       </div>
     </div>
   </div>
+  <!--  -->
+  <!--  -->
   <!-- Modal -->
   <div class="modal fade" id="feedbackModal" tabindex="-1" aria-labelledby="feedbackModalLabel" aria-hidden="true">
     <div class="modal-dialog">
@@ -117,9 +119,6 @@
                       <label for="nostalgia">Nostalgia</label><br>
                       <!-- Add more checkboxes as needed -->
                   </div>
-                  
-                  
-
                     <!-- Submit Button -->
                     <button type="button" onclick="submitFeedback()">Submit</button>
                 </form>
@@ -130,50 +129,64 @@
 
 
 <script>
+  let sweetAlertDisplayed = false; // Flag to track whether SweetAlert has been displayed
   function submitFeedback() {
-      const algorithm = document.getElementById('algorithm').value;
-      const reasons = getSelectedReasons();
-      console.log('Algorithm:', algorithm);
-      console.log('Reasons:', reasons);
+    const algorithm = document.getElementById('algorithm').value;
+    const reasons = getSelectedReasons();
+    console.log('Algorithm:', algorithm);
+    console.log('Reasons:', reasons);
 
-      if (algorithm && reasons.length > 0) {
-          // Get the CSRF token from the cookie
-          const csrftoken = getCookie('csrftoken');
-          const username = window.location.pathname.split('/')[2];
+    if (algorithm && reasons.length > 0) {
+        // Get the CSRF token from the cookie
+        const playlistName = algorithm === 'Apriori' ? 'Playlist 1' : 'Playlist 2';
+        const csrftoken = getCookie('csrftoken');
+        const username = window.location.pathname.split('/')[2];
 
-          const data = {
+        const data = {
             'algorithm': algorithm,
-            'reasons':reasons ,
-          };
+            'reasons': reasons,
+        };
 
-          // Send feedback data to the backend using AJAX
-          $.ajax({
-              type: 'POST',
-              url: '/spotify/' + username + '/feedback/',  // Update the URL based on your Django URL patterns
-              contentType: 'application/json; charset=utf-8',
-              dataType: 'json',
-              data: JSON.stringify({
-                  'data':data,
-              }),
-              headers: {
-                  'X-CSRFToken': csrftoken,
-              },
-              success: function (data) {
-                  // Handle success (if needed)
-                  alert('Thank you for your feedback! You liked the ' + algorithm + ' Algorithm.');
-                  // You might want to redirect or perform other actions after feedback
-                  window.location.href = "/home";
-              },
-              error: function (error) {
-                  // Handle error (if needed)
-                  console.error('Error submitting feedback:', error);
-              }
-          });
-          
-      } else {
-          alert('Please select both algorithm and reasons before submitting.');
-      }
+        // Send feedback data to the backend using AJAX
+        $.ajax({
+            type: 'POST',
+            url: '/spotify/' + username + '/feedback/', // Update the URL based on your Django URL patterns
+            contentType: 'application/json; charset=utf-8',
+            dataType: 'json',
+            data: JSON.stringify({
+                'data': data,
+            }),
+            headers: {
+                'X-CSRFToken': csrftoken,
+            },
+            success: function (data) {
+              sweetAlertDisplayed = true;
+                // Use SweetAlert for success message
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Success!',
+                    text: 'Thank you for your feedback!You liked the' + playlistName,
+                }).then((result) => {
+                    // Redirect or perform other actions after feedback
+                    window.location.href = "/home";
+                });
+            },
+            error: function (error) {
+                // Handle error (if needed)
+                console.error('Error submitting feedback:', error);
+            }
+        });
+
+    } else {
+        // Use SweetAlert for validation error
+        Swal.fire({
+            icon: 'error',
+            title: 'Validation Error',
+            text: 'Please select both algorithm and reasons before submitting.',
+        });
+    }
   }
+
 
   function getSelectedReasons() {
     const checkboxes = document.querySelectorAll('input[type="checkbox"]:checked');
@@ -204,7 +217,11 @@
 
   if (window.location.pathname.startsWith("/spotify/")) {
       window.addEventListener('beforeunload', function (e) {
-          $('#feedbackModal').modal('show');
+        if (!sweetAlertDisplayed) {
+              $('#feedbackModal').modal('show');
+          } else {
+            $('#feedbackModal').modal('hide');
+          }
       });
   }
 </script>

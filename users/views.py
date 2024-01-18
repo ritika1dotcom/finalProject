@@ -58,7 +58,7 @@ def user_song_history(request, username):
         'user_obj': user_obj,
         'song_history': song_history,
     }
-    print("data",context)
+    # print("data",context)
     return render(request, 'song_history.html', context)
 
 def add_song_history(request):
@@ -69,17 +69,19 @@ def add_song_history(request):
         song_title = data.get('song_title')
         artist_name = data.get('artist_name')
         album_image = data.get('album_image')
+        preview_url = data.get('preview_url')
     
         if not song_title or not artist_name:
             return JsonResponse({'status': 'error', 'message': 'Missing song details'}, status=400)
-        print("play history",PlayHistory)
+        
         PlayHistory.objects.create(
             user=request.user,
             song_title=song_title,
             artist_name=artist_name,
             album_image=album_image,
+            preview_url = preview_url,
         )
-        print("data",PlayHistory);
+        # print("Data with preview_url:", PlayHistory.objects.latest('timestamp'))  # Adjust based on your timestamp field
         return JsonResponse({'status': 'ok'})
     
     return JsonResponse({'status': 'ok', 'message': 'valid request'})
