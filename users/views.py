@@ -12,6 +12,8 @@ def password_reset_done_with_message(request):
     return render(request, 'password_reset_done_with_message.html')
 
 def signup(request):
+    registration_successful = False  # Default value
+
     if request.method == 'POST':
         # Retrieve form data from POST request
         username = request.POST.get('username1')
@@ -22,24 +24,25 @@ def signup(request):
         # Validate form data
         if not username or not email or not password1 or not password2:
             messages.error(request, 'Please fill in all fields.')
-            return redirect('home')
+            return redirect('/home')
 
         if password1 != password2:
             messages.error(request, 'Passwords do not match.')
-            return redirect('home')
+            return redirect('/home')
 
         # Create a new user
         try:
             user = User.objects.create_user(username=username, email=email, password=password1)
             user.save()
+            registration_successful = True  # Set to True if registration is successful
             messages.success(request, 'Account created successfully!')
             return redirect('home')
         except Exception as e:
             messages.error(request, f'There was an error creating your account: {e}')
             return redirect('home')
 
-    # If the request is not a POST request, render the signup page
-    return render(request, 'home.html')
+    # Render the template with the registration status
+    return render(request, 'home.html', {'registration_successful': registration_successful})
 
 def send_welcome_email(recipient_email):
     send_mail(

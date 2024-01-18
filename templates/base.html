@@ -102,21 +102,40 @@
 
 <body>
     {% if messages %}
-        <div class="container mt-5 bg-green-500 text-black">
-            {% for message in messages %}
-            <div class="alert alert-{{ message.tags }}">
-                {{ message }}
-            </div>
-            {% endfor %}
-        </div>
-    {% endif %}
-    {% if form.errors %}
-    <ul class="error-messages">
-        {% for field, error in form.errors.items %}
-            <li><strong>{{ field }}:</strong> {{ error|join:", " }}</li>
+        {% for message in messages %}
+            <script>
+                Swal.fire({
+                    icon: '{{ message.tags }}',
+                    title: '{{ message.tags|title }}',
+                    text: '{{ message }}',
+                    showConfirmButton: true,
+                });
+            </script>
         {% endfor %}
-    </ul>
-{% endif %}
+    {% endif %}
+
+    {% if form.errors %}
+        <script>
+            Swal.fire({
+                icon: 'error',
+                title: 'Form Validation Error',
+                html: '{% for field, error in form.errors.items %}<strong>{{ field }}:</strong> {{ error|join:", " }}<br>{% endfor %}',
+                showConfirmButton: true,
+            });
+        </script>
+    {% endif %}
+
+    {% if registration_successful %}
+    <script>
+        Swal.fire({
+            icon: 'success',
+            title: 'Registration Successful',
+            text: 'You have successfully registered.',
+            showConfirmButton: false,
+            timer: 2000  // Adjust the timer as needed
+        });
+    </script>
+    {% endif %}
 
     <div class="flex-col">
         <div class="flex justify-end px-10 " style="background-color: #f1e0ce;">

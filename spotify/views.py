@@ -56,7 +56,7 @@ def search_song(request):
 
 def featured_music(request):
     # Define a list of keywords to search for in playlist names
-    keywords = [ 'Pop','Rock','K-pop', 'Chinese', 'Japanese','Nepali', 'Bollywood']
+    keywords = [ 'K-pop','Rock','Pop', 'Chinese', 'Japanese','Nepali', 'Bollywood']
 
     # Fetch playlists for each keyword
     featured_playlists = []
