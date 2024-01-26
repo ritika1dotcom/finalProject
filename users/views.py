@@ -3,13 +3,9 @@ from django.shortcuts import get_object_or_404, render, redirect
 from django.contrib import messages
 from django.core.mail import send_mail
 from django.contrib.auth.models import User
-from .form import AvatarForm
-from .models import PlayHistory, UserProfile
+from .form import PreferencesForm
+from .models import PlayHistory, UserPreferences, UserProfile
 from django.http import JsonResponse
-
-def password_reset_done_with_message(request):
-    messages.success(request, 'Password reset email has been sent!')
-    return render(request, 'password_reset_done_with_message.html')
 
 def signup(request):
     registration_successful = False  # Default value
@@ -43,15 +39,6 @@ def signup(request):
 
     # Render the template with the registration status
     return render(request, 'home.html', {'registration_successful': registration_successful})
-
-def send_welcome_email(recipient_email):
-    send_mail(
-        'Welcome to Our Site',
-        'Thank you for registering with us. We hope you enjoy our services.',
-        'webmaster@example.com',  # This should be your sending email
-        [recipient_email],
-        fail_silently=False,  # This will raise an exception if there's an issue
-    )
 
 def user_song_history(request, username):
     user_obj = get_object_or_404(User, username=username)
@@ -89,14 +76,22 @@ def add_song_history(request):
     
     return JsonResponse({'status': 'ok', 'message': 'valid request'})
 
-def upload_avatar(request):
+def preferences_view(request):
+    user_has_preferences = None
+
+    if request.user.is_authenticated:
+        try:
+            user_preferences = UserPreferences.objects.get(user=request.user)
+            user_has_preferences = PreferencesForm(instance=user_preferences)
+        except UserPreferences.DoesNotExist:
+            user_has_preferences = PreferencesForm()
+
     if request.method == 'POST':
-        form = AvatarForm(request.POST, request.FILES)
+        form = PreferencesForm(request.POST, instance=user_preferences)
         if form.is_valid():
-            user_profile = UserProfile.objects.get(user=request.user)
-            user_profile.avatar = form.cleaned_data['avatar']
-            user_profile.save()
-            return redirect('profile')
-    else:
-        form = AvatarForm()
-    return render(request, 'song_history.html', {'form': form})
+            preferences = form.save(commit=False)
+            preferences.user = request.user
+            preferences.save()
+            user_has_preferences = PreferencesForm(instance=preferences)
+
+    return user_has_preferences

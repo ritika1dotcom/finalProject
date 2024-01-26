@@ -8,6 +8,7 @@ from spotipy.oauth2 import SpotifyClientCredentials
 from django.conf import settings
 import random
 import numpy as np
+from users.form import PreferencesForm
 from users.models import PlayHistory
 from django.contrib.auth.models import User
 from itertools import combinations
@@ -16,7 +17,7 @@ from .models import Feedback
 from django.contrib.auth.decorators import login_required
 import json
 from django.views.decorators.csrf import csrf_exempt
-
+from users.views import preferences_view
 
 # Fetch client credentials from settings
 SPOTIPY_CLIENT_ID = settings.SPOTIPY_CLIENT_ID
@@ -57,6 +58,14 @@ def search_song(request):
 def featured_music(request):
     # Define a list of keywords to search for in playlist names
     keywords = [ 'K-pop','Rock','Pop', 'Chinese', 'Japanese','Nepali', 'Bollywood']
+    user_has_preferences = None
+    form = None
+
+    # Check if the user is authenticated before calling preferences_view
+    if request.user.is_authenticated:
+        user_has_preferences = preferences_view(request)
+        form = user_has_preferences  # Now user_has_preferences is a form instance
+
 
     # Fetch playlists for each keyword
     featured_playlists = []
@@ -106,9 +115,9 @@ def featured_music(request):
             "playlist_name": playlist_name,
             "tracks": featured_tracks,
         })
-        # print('featured', featured_playlists);
+        print('featured', user_has_preferences);
 
-    return render(request, 'home.html', {'featured_playlists': featured_playlists})
+    return render(request, 'home.html', {'featured_playlists': featured_playlists, 'user_has_preferences': user_has_preferences, 'form':form})
 
 def get_all_songs():
     # Fetch a list of featured playlists
@@ -500,6 +509,13 @@ def recommend(username,data):
 
     }
     return context
+
+
+
+
+
+
+
 
 
 @csrf_exempt

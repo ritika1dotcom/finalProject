@@ -19,7 +19,15 @@ class PlayHistory(models.Model):
             return f"{self.song_title} by {self.artist_name} ({self.album_image})"
         else:
             return f"{self.song_title} by {self.artist_name} (No album image)"
+        
+class UserPreferences(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='user_preferences', unique=True)
+    age_group = models.CharField(max_length=50)
+    favorite_music_genre = models.CharField(max_length=100)
 
+    def __str__(self):
+        return self.user.username
+    
 class UserProfile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
     avatar = models.ImageField(upload_to='static/images/')

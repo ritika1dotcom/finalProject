@@ -1,19 +1,30 @@
+# form.py
 from django import forms
-from django.contrib.auth.forms import UserCreationForm
-from django.contrib.auth.models import User
-from users.models import UserProfile
+from .models import UserPreferences
 
-# class SignUpForm(UserCreationForm):
-#     # def __init__(self, *args, **kwargs):
-#     #     super().__init__(*args, **kwargs)
-#     #     # Set a unique ID for the username field in the SignUpForm
-#     #     self.fields['username'].widget.attrs.update({'id': 'signup-username'})
-#     class Meta:
-#         model = User
-#         fields = ['username', 'email', 'password1', 'password2']
+class PreferencesForm(forms.ModelForm):
+    AGE_CHOICES = [
+        ('14-20', '14-20'),
+        ('20-30', '20-30'),
+        ('30-40', '30-40'),
+        ('40-50', '40-50'),
+        ('50+', '50+'),
+    ]
 
+    MUSIC_GENRE_CHOICES = [
+        ('Rock', 'Rock'),
+        ('Pop', 'Pop'),
+        ('Japanese', 'Japanese'),
+        ('Chinese', 'Chinese'),
+        ('K-Pop', 'Korean'),
+        ('Nepali', 'Nepali'),
+        ('Romance', 'Romance'),
+        # Add more choices as needed
+    ]
 
-class AvatarForm(forms.ModelForm):
+    age_group = forms.ChoiceField(choices=AGE_CHOICES, widget=forms.Select(attrs={'class': 'border rounded w-full py-2 px-3 text-black bg-gray-300 focus:outline-none focus:border-blue-500'}))
+    favorite_music_genre = forms.MultipleChoiceField(choices=MUSIC_GENRE_CHOICES, widget=forms.CheckboxSelectMultiple(attrs={'class': 'text-gray-300'}))
+
     class Meta:
-        model = UserProfile
-        fields = ('avatar',)
+        model = UserPreferences
+        fields = ['age_group', 'favorite_music_genre']

@@ -28,7 +28,56 @@
                 {% endfor %}
             </div>
         {% endfor %}
-        
+
+        {% if user.is_authenticated %}
+        {% if not user_has_preferences %}
+            <!-- User preference Modal  -->
+            <div class="modal fade" id="userPreferencesModal" tabindex="-1" aria-labelledby="userPreferencesModalLabel" aria-hidden="true">
+                <div class="modal-dialog">
+                    <div class="modal-content bg-opacity-80 rounded-lg shadow-md">
+                        <div class="modal-header border-0">
+                            <h1 class="modal-title text-xl font-semibold mb-4">User Preferences</h1>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            <form method="post" action="{% url 'home' %}" id="preferencesForm">
+                                {% csrf_token %}
+
+                                <div class="mb-4">
+                                    <label for="age_group" class="block text-gray-300">Age Group</label>
+                                    {{ form.age_group }}
+                                </div>
+
+                                <div class="mb-4">
+                                    <label class="block text-gray-300">Favorite Music Genres</label>
+                                    {{ form.favorite_music_genre }}
+                                </div>
+
+                                <button type="button" onclick="savePreferences()" class="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded focus:outline-none focus:shadow-outline-blue active:bg-blue-700">Save Preferences</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <script>
+                document.addEventListener("DOMContentLoaded", function () {
+                    $('#userPreferencesModal').modal('show');
+                });
+    
+                function savePreferences() {
+                    // Implement your JavaScript logic for saving preferences here
+                    document.getElementById('preferencesForm').submit();
+                    // Show SweetAlert success message
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Preferences Saved!',
+                        text: 'Your preferences have been successfully saved.',
+                    });
+                }
+            </script>
+        {% endif %}
+    {% endif %}
+    
     </section>
 </div>
 
