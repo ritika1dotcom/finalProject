@@ -84,6 +84,7 @@ def preferences_view(request):
             user_preferences = UserPreferences.objects.get(user=request.user)
             user_has_preferences = PreferencesForm(instance=user_preferences)
         except UserPreferences.DoesNotExist:
+            user_preferences = None  
             user_has_preferences = PreferencesForm()
 
     if request.method == 'POST':

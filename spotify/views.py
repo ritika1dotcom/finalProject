@@ -9,7 +9,7 @@ from django.conf import settings
 import random
 import numpy as np
 from users.form import PreferencesForm
-from users.models import PlayHistory
+from users.models import PlayHistory, UserPreferences
 from django.contrib.auth.models import User
 from itertools import combinations
 from django.http import JsonResponse
@@ -57,7 +57,7 @@ def search_song(request):
 
 def featured_music(request):
     # Define a list of keywords to search for in playlist names
-    keywords = [ 'K-pop','Rock','Pop', 'Chinese', 'Japanese','Nepali', 'Bollywood']
+    keywords = [ 'K-pop','Rock','Pop', 'Love Songs', 'Japanese','Nepali', 'Bollywood']
     user_has_preferences = None
     form = None
 
@@ -115,49 +115,97 @@ def featured_music(request):
             "playlist_name": playlist_name,
             "tracks": featured_tracks,
         })
-        print('featured', user_has_preferences);
+        # print('featured', featured_playlists);
 
     return render(request, 'home.html', {'featured_playlists': featured_playlists, 'user_has_preferences': user_has_preferences, 'form':form})
 
-def get_all_songs():
-    # Fetch a list of featured playlists
-    playlists = sp.featured_playlists(limit=1)
-    
-    # If no playlists were found, return an empty dictionary
-    if not playlists['playlists']['items']:
-        return {}
 
-    # Randomly select a playlist
-    selected_playlist = random.choice(playlists['playlists']['items'])
-    playlist_uri = selected_playlist['uri']
+def user_preferences_view(request, username):
+    # Check if the user is authenticated
+    if request.user.is_authenticated:
+        try:
+            # Attempt to get the user's preferences
+            user_preferences = UserPreferences.objects.get(user=request.user)
 
-    # Fetch tracks from the selected playlist
-    tracks_data = sp.playlist_tracks(playlist_uri)["items"]
+            # Extract relevant information
+            age_group = user_preferences.age_group
+            favorite_music_genre = user_preferences.favorite_music_genre
 
-    # Extract essential details for each track
+            # Generate random recommendations based on favorite music genre
+            # recommendations = generate_random_recommendations(favorite_music_genre, 0.5)
+            # matrix_recommendation = generate_random_matrix(favorite_music_genre, 0.5)
+            # # Generate user song data based on age_group and favorite music genre
+            # user_song_data = get_user_song_data(age_group, favorite_music_genre)
+
+            # Return recommendations as JSON response
+            return JsonResponse({'age_group': age_group, 'favorite_music_genre': favorite_music_genre})
+
+        except UserPreferences.DoesNotExist:
+            # Handle the case where the user doesn't have preferences
+            return JsonResponse({'message': 'No preferences found.'})
+
+    else:
+        # Handle the case where the user is not authenticated
+        return JsonResponse({'message': 'User not authenticated.'})
+
+
+
+def get_all_songs(favorite_music_genres):
     all_music = {}
-    for track_data in tracks_data:
-        track = track_data["track"]
-        
-        # Get the track's main artist's details
-        artist_uri = track["artists"][0]["uri"]
-        artist_info = sp.artist(artist_uri)
-        album_image_url = track["album"]["images"][0]["url"] if track["album"]["images"] else None
+    print("genres get all", favorite_music_genres)
 
-        song_key = track["name"]  # Assuming that the name of the song is unique
-        all_music[song_key] = {
-            "uri": track["uri"],
-            "name": track["name"],
-            "artist_name": track["artists"][0]["name"],
-            "artist_popularity": artist_info["popularity"],
-            "artist_genres": artist_info["genres"],
-            "album_name": track["album"]["name"],
-            "track_popularity": track["popularity"],
-            "album_image": album_image_url,
-            "preview_url": track.get("preview_url") 
-        }
+    # Ensure favorite_music_genres is a list
+    if not isinstance(favorite_music_genres, list):
+        # Split the string into a list using a delimiter (e.g., comma)
+        favorite_music_genres = favorite_music_genres.split(',')
+
+    # Remove leading and trailing whitespaces, square brackets, and single quotes
+    favorite_music_genres = [genre.strip("[]'") for genre in favorite_music_genres]
+
+    for genre in favorite_music_genres:
+        genre = genre.strip()  # Remove leading and trailing whitespaces
+        print("genre", genre)
+
+        try:
+            # Search for playlists with the specified genre name
+            playlists = sp.search(q=genre, type='playlist', limit=1)
+
+            if 'playlists' not in playlists or not playlists['playlists']['items']:
+                continue
+
+            selected_playlist = playlists['playlists']['items'][0]  # Select the first playlist
+            playlist_uri = selected_playlist['uri']
+
+            # Fetch up to 20 tracks from the selected playlist
+            tracks_data = sp.playlist_tracks(playlist_uri, limit=20)["items"]
+
+            for track_data in tracks_data:
+                track = track_data["track"]
+
+                artist_uri = track["artists"][0]["uri"]
+                artist_info = sp.artist(artist_uri)
+                album_image_url = track["album"]["images"][0]["url"] if track["album"]["images"] else None
+
+                song_key = track["name"]
+                all_music[song_key] = {
+                    "uri": track["uri"],
+                    "name": track["name"],
+                    "artist_name": track["artists"][0]["name"],
+                    "artist_popularity": artist_info["popularity"],
+                    "artist_genres": artist_info["genres"],
+                    "album_name": track["album"]["name"],
+                    "track_popularity": track["popularity"],
+                    "album_image": album_image_url,
+                    "preview_url": track.get("preview_url")
+                }
+
+        except spotipy.SpotifyException as e:
+            # Handle Spotify API exceptions, e.g., invalid category ID
+            print(f"Error fetching data for {genre}: {str(e)}")
+        print("all music", all_music)
 
     return all_music
+
 
 def listening_history(user):
     # Fetch the listening history entries for the user
@@ -186,7 +234,7 @@ def listening_history(user):
     ]
     return user_history_tuples
 
-def get_user_song_data():
+def get_user_song_data(age_group, favorite_music_genre):
     # Fetch all users
     users = User.objects.all()
 
@@ -195,30 +243,33 @@ def get_user_song_data():
 
     # Iterate through each user
     for user in users:
-        # Fetch the listening history entries for the user
-        user_history_entries = PlayHistory.objects.filter(user=user).values_list('song_title', 'artist_name', 'album_image','preview_url')
+        # Fetch the listening history entries for the user based on age_group
+        if age_group == user.user_preferences.age_group:
+            # Assuming that you have a relationship between User and UserPreferences
+            user_history_entries = PlayHistory.objects.filter(user=user).values_list('song_title', 'artist_name', 'album_image', 'preview_url')
 
-        # Convert the queryset of tuples to a set of tuples
-        user_history_entries = {tuple(entry) for entry in user_history_entries}
+            # Convert the queryset of tuples to a set of tuples
+            user_history_entries = {tuple(entry) for entry in user_history_entries}
 
-        # Store the listening history in the dictionary
-        user_song_data[user.username] = user_history_entries
-    # print("songs",user_song_data)
+            # Store the listening history in the dictionary
+            user_song_data[user.username] = user_history_entries
+
+    # print("songs", user_song_data)
     return user_song_data
 
 
-def generate_random_recommendations(min_confidence):
+def generate_random_recommendations(favorite_genre, min_confidence):
     # Generate a list of random songs with high confidence
-    all_music = get_all_songs()
-    
+    all_music = get_all_songs(favorite_genre)
+
     random_songs = get_random_songs(all_music)
     random_recommendation = random.sample(random_songs, min(5, len(random_songs)))
     random_recommendations = [{'song': song, 'song_details': all_music[song]} for song in random_recommendation]
     return random_recommendations
 
-def generate_random_matrix(min_confidence):
+def generate_random_matrix(favorite_genre,min_confidence):
     # Generate a list of random songs with high confidence
-    all_music = get_all_songs()
+    all_music = get_all_songs(favorite_genre)
     random_songs = get_random_songs(all_music)
     random_matrix = random.sample(random_songs, min(5, len(random_songs)))
     random_recommendation_matrix = [{'song': song, 'song_details': all_music[song]} for song in random_matrix]
@@ -340,22 +391,31 @@ def recommend_song(request, username):
     sp = spotipy.Spotify(auth_manager=SpotifyClientCredentials(client_id=SPOTIPY_CLIENT_ID, client_secret=SPOTIPY_CLIENT_SECRET))
 
     # Fetch the listening history for the current user
+    try:
+        user_preferences = UserPreferences.objects.get(user=user_obj)
+        age_group = user_preferences.age_group
+        favorite_music_genre = user_preferences.favorite_music_genre
+    except UserPreferences.DoesNotExist:
+        # Handle the case where the user doesn't have preferences
+        age_group = None
+        favorite_music_genre = None
+
     user_listening_history = listening_history(user_obj)
-    song_data = get_user_song_data()
+    song_data = get_user_song_data(age_group, favorite_music_genre)
     data = get_user_song_list()
     # print("list", data)
-    # print("song",song_data)
+    print("song",song_data)
     frequent_itemsets = generate_frequent_itemsets(song_data, min_support_threshold)
     association_rule = generate_association_rules(frequent_itemsets)
     recommendations = recommend_songs(song_data, association_rule,user_obj,sp)
-    random_songs = random.sample(recommendations, min(5, len(recommendations)))
+    random_songs = random.sample(recommendations, min(10, len(recommendations)))
     matrix = recommend(user_obj,data)
-    # print("matrix",matrix)
+    print("matrix",favorite_music_genre)
 
     # If there are no recommendations, generate a random playlist
     if not recommendations:
-        song = generate_random_recommendations(0.5)
-        random_recommendation_matrix = generate_random_matrix(0.5)
+        song = generate_random_recommendations(favorite_music_genre , 0.5)
+        random_recommendation_matrix = generate_random_matrix(favorite_music_genre ,0.5)
         # print("song",song)
         context = {
             'user_obj': user_obj,
@@ -514,36 +574,29 @@ def recommend(username,data):
 
 
 
-
-
-
-
 @csrf_exempt
 @login_required  # Decorator to ensure the user is authenticated
 def submit_feedback(request, username):
-    
     user = get_object_or_404(User, username=username)
 
     if request.method == 'POST':
         try:
             data = json.loads(request.body.decode('utf-8'))
             print(data)
+            
+            # Extract values from data
             algorithm = data.get('data', {}).get('algorithm')
-            print(algorithm)
-            reasons = data.get('data', {}).get('reasons', [])
-            print(reasons,"reasons")
+            user_age_group = data.get('data', {}).get('user_age_group')
+            user_favorite_genre = data.get('data', {}).get('user_favorite_genre')
 
             # Create Feedback instance and save to the database
             feedback = Feedback.objects.create(
                 user=user,
                 algorithm=algorithm,
-                genre='genre' in reasons,
-                mood='mood' in reasons,
-                new_music='new_music' in reasons,
-                artists='artists' in reasons,
-                nostalgia='nostalgia' in reasons,
+                user_age_group_field=user_age_group,
+                user_favorite_genre_field=user_favorite_genre,
             )
-            print(feedback,"feedback")
+            print(feedback, "feedback")
             return JsonResponse({'status': 'success'})
         except json.JSONDecodeError as e:
             return JsonResponse({'status': 'error', 'message': 'Invalid JSON data'})
@@ -554,7 +607,7 @@ def submit_feedback(request, username):
             return JsonResponse({'status': 'error', 'message': 'Error processing feedback'})
     else:
         return JsonResponse({'status': 'error', 'message': 'Invalid request method'})
-    
+
 
 def chart(request):
     print('Chart view called')

@@ -18,7 +18,7 @@ class PreferencesForm(forms.ModelForm):
         ('Chinese', 'Chinese'),
         ('K-Pop', 'Korean'),
         ('Nepali', 'Nepali'),
-        ('Romance', 'Romance'),
+        ('Love Songs', 'Romance'),
         # Add more choices as needed
     ]
 

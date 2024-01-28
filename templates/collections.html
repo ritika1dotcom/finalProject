@@ -25,7 +25,7 @@
             </div>
           {% endfor %}
         {% else %}
-          <p>No Apriori recommendations available. Here's a random playlist:</p>
+          <p>No recommendations available. Here's a random playlist:</p>
           {% for random_song in recommended_songs %}
             <div class="flex flex-row gap-5 py-2" onclick="playAndMakeTransparent(this, '{{ random_song.song_details.preview_url }}', '{{ random_song.song }}', '{{ random_song.song_details.artist_name }}','{{random_song.song_details.album_image}}')">
               <img
@@ -64,7 +64,7 @@
           </div>
         {% endfor %}
         {% else %}
-          <p>No Matrix recommendations available. Here's a random playlist:</p>
+          <p>No recommendations available. Here's a random playlist:</p>
           {% for random_song in random_recommendation_matrix %}
             <div class="flex flex-row gap-5 py-2" onclick="playAndMakeTransparent(this, '{{ random_song.preview_url }}', '{{ random_song.song }}', '{{ random_song.artist_name }}','{{random_song.album_image}}')">
               <img
@@ -104,21 +104,6 @@
                         </select>
                     </div>
 
-                    <!-- Reasons Checkboxes -->
-                    <div class="mb-4">
-                      <p>Select reasons why you liked the algorithm:</p>
-                      <input type="checkbox" id="genre" name="genre" value="Genre">
-                      <label for="genre">Genre Compatibility</label><br>
-                      <input type="checkbox" id="mood" name="mood" value="Mood">
-                      <label for="mood">Mood Enhancement</label><br>
-                      <input type="checkbox" id="new_music" name="new_music" value="New Music">
-                      <label for="new_music">Discovery of new music</label><br>
-                      <input type="checkbox" id="artists" name="artists" value="Artists">
-                      <label for="artists">Favorite Artists</label><br>
-                      <input type="checkbox" id="nostalgia" name="nostalgia" value="Nostalgia">
-                      <label for="nostalgia">Nostalgia</label><br>
-                      <!-- Add more checkboxes as needed -->
-                  </div>
                     <!-- Submit Button -->
                     <button type="button" onclick="submitFeedback()">Submit</button>
                 </form>
@@ -127,103 +112,106 @@
     </div>
 </div>
 
-
 <script>
   let sweetAlertDisplayed = false; // Flag to track whether SweetAlert has been displayed
+
+  // Add these lines to include userAgeGroup and userFavoriteGenre
+  var userAgeGroup = "Unknown";
+  var userFavoriteGenre = "Unknown";
+  const username = window.location.pathname.split('/')[2];
+
+  // Make AJAX request to get user preferences
+  $.ajax({
+    type: 'GET',
+    url: '/spotify/' + username + '/preference/',  // Replace <your-username> with the actual username
+    dataType: 'json',
+    success: function (data) {
+      if ('age_group' in data && 'favorite_music_genre' in data) {
+        userAgeGroup = data.age_group;
+        userFavoriteGenre = data.favorite_music_genre;
+      }
+    },
+    error: function (error) {
+      console.error('Error getting user preferences:', error);
+    }
+  });
+
   function submitFeedback() {
     const algorithm = document.getElementById('algorithm').value;
-    const reasons = getSelectedReasons();
-    console.log('Algorithm:', algorithm);
-    console.log('Reasons:', reasons);
 
-    if (algorithm && reasons.length > 0) {
-        // Get the CSRF token from the cookie
+    if (algorithm) {
         const playlistName = algorithm === 'Apriori' ? 'Playlist 1' : 'Playlist 2';
         const csrftoken = getCookie('csrftoken');
-        const username = window.location.pathname.split('/')[2];
 
+        // Include both algorithm and user_has_preference values in data
         const data = {
             'algorithm': algorithm,
-            'reasons': reasons,
+            'age_group': userAgeGroup,
+            'favorite_genre': userFavoriteGenre
         };
 
-        // Send feedback data to the backend using AJAX
         $.ajax({
             type: 'POST',
-            url: '/spotify/' + username + '/feedback/', // Update the URL based on your Django URL patterns
+            url: '/spotify/' + username + '/feedback/',
             contentType: 'application/json; charset=utf-8',
             dataType: 'json',
-            data: JSON.stringify({
-                'data': data,
-            }),
-            headers: {
-                'X-CSRFToken': csrftoken,
-            },
+            data: JSON.stringify({ 'data': data }),
+            headers: { 'X-CSRFToken': csrftoken },
             success: function (data) {
-              sweetAlertDisplayed = true;
-                // Use SweetAlert for success message
+                sweetAlertDisplayed = true;
                 Swal.fire({
                     icon: 'success',
                     title: 'Success!',
-                    text: 'Thank you for your feedback!You liked the' + playlistName,
+                    text: `Thank you for your feedback! You liked the ${playlistName}.`,
                 }).then((result) => {
-                    // Redirect or perform other actions after feedback
                     window.location.href = "/home";
                 });
             },
             error: function (error) {
-                // Handle error (if needed)
                 console.error('Error submitting feedback:', error);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'Failed to submit feedback. Please try again.',
+                });
             }
         });
-
+        console.log("data",data)
     } else {
-        // Use SweetAlert for validation error
         Swal.fire({
             icon: 'error',
             title: 'Validation Error',
-            text: 'Please select both algorithm and reasons before submitting.',
+            text: 'Please select an algorithm before submitting.',
         });
     }
   }
 
-
-  function getSelectedReasons() {
-    const checkboxes = document.querySelectorAll('input[type="checkbox"]:checked');
-    const selectedReasons = Array.from(checkboxes).map(checkbox => checkbox.id);
-
-    console.log('Selected Checkboxes:', checkboxes);
-    console.log('Selected Reasons:', selectedReasons);
-
-    return selectedReasons;
-}
-
-
   // Function to get the CSRF token from the cookie
   function getCookie(name) {
-      let cookieValue = null;
-      if (document.cookie && document.cookie !== '') {
-          const cookies = document.cookie.split(';');
-          for (let i = 0; i < cookies.length; i++) {
-              const cookie = cookies[i].trim();
-              if (cookie.substring(0, name.length + 1) === (name + '=')) {
-                  cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                  break;
-              }
-          }
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+      const cookies = document.cookie.split(';');
+      for (let i = 0; i < cookies.length; i++) {
+        const cookie = cookies[i].trim();
+        if (cookie.substring(0, name.length + 1) === (name + '=')) {
+          cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+          break;
+        }
       }
-      return cookieValue;
+    }
+    return cookieValue;
   }
 
   if (window.location.pathname.startsWith("/spotify/")) {
-      window.addEventListener('beforeunload', function (e) {
-        if (!sweetAlertDisplayed) {
-              $('#feedbackModal').modal('show');
-          } else {
-            $('#feedbackModal').modal('hide');
-          }
-      });
+    window.addEventListener('beforeunload', function (e) {
+      if (!sweetAlertDisplayed) {
+        $('#feedbackModal').modal('show');
+      } else {
+        $('#feedbackModal').modal('hide');
+      }
+    });
   }
 </script>
+
 
 {% endblock %}
