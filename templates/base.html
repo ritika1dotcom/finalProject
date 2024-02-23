@@ -41,8 +41,67 @@
             display: inline-block;
             height: 40px;
         }
+        body.loading {
+            background-color: rgba(255, 255, 255, 0.9); /* Transparent background color */
+            overflow: hidden;
+        }
+        .loader {
+            border: 10px solid #f3f3f3;
+            border-radius: 50%;
+            border-top: 10px solid #3498db;
+            width: 90px;
+            height: 90px;
+            -webkit-animation: spin 2s linear infinite; /* Safari */
+            animation: spin 2s linear infinite;
+            display: none; /* Initially hide the loader */
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 1000;
+        }
+
+            /* Safari */
+        @-webkit-keyframes spin {
+            0% { -webkit-transform: rotate(0deg); }
+            100% { -webkit-transform: rotate(360deg); }
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(255, 255, 255, 0.5); /* Transparent background color */
+            display: none;
+            z-index: 99;
+        }
     </style>
     <script>
+        function showLoadingSpinner() {
+         // Show overlay
+        document.querySelector('.overlay').style.display = 'block';
+
+          // Show loading spinner
+        document.getElementById('loadingSpinner').style.display = 'block';
+        setTimeout(function() {
+            window.location.href = "{% url 'home' %}";
+        },2000);
+        }
+
+      // Assume this function is called when the home page is loaded
+        function hideLoadingSpinner() {
+            // Hide overlay
+            document.querySelector('.overlay').style.display = 'none';
+
+            // Hide loading spinner
+            document.getElementById('loadingSpinner').style.display = 'none';
+        }
             function getCookie(name) {
             let value = "; " + document.cookie;
             let parts = value.split("; " + name + "=");
@@ -109,6 +168,7 @@
 </head>
 
 <body>
+    <div class="overlay"></div>
     {% if messages %}
         {% for message in messages %}
             <script>
@@ -176,7 +236,7 @@
                     </li>
                     {% if user.is_authenticated %}
                     <li class="nav-item">
-                        <a href="{% url 'recommend_song'  request.user.username %}" class="navlink px-5" >
+                        <a href="{% url 'recommend_song'  request.user.username %}" onclick="showLoadingSpinner()" class="navlink px-5" >
                             Recommendations
                         </a>
                     </li>
@@ -210,6 +270,7 @@
                     </form>
                 </div>
             </div>
+            <div id="loadingSpinner" class="loader"></div>
         </nav>
             <!-- Main Content -->
             <div class="flex-grow p-3" style="background-color:#ec9a86; ">

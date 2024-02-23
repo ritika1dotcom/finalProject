@@ -29,8 +29,7 @@
             </div>
         {% endfor %}
 
-        {% if user.is_authenticated %}
-        {% if not user_has_preferences %}
+        {% if user.is_authenticated and not user_has_preferences %}
             <!-- User preference Modal  -->
             <div class="modal fade" id="userPreferencesModal" tabindex="-1" aria-labelledby="userPreferencesModalLabel" aria-hidden="true">
                 <div class="modal-dialog">
@@ -76,7 +75,6 @@
                 }
             </script>
         {% endif %}
-    {% endif %}
     
     </section>
 </div>

@@ -84,8 +84,7 @@ def preferences_view(request):
             user_preferences = UserPreferences.objects.get(user=request.user)
             user_has_preferences = PreferencesForm(instance=user_preferences)
         except UserPreferences.DoesNotExist:
-            user_preferences = None  
-            user_has_preferences = PreferencesForm()
+            user_has_preferences = None  # Set to None if UserPreferences does not exist
 
     if request.method == 'POST':
         form = PreferencesForm(request.POST, instance=user_preferences)
@@ -95,4 +94,9 @@ def preferences_view(request):
             preferences.save()
             user_has_preferences = PreferencesForm(instance=preferences)
 
+    if user_has_preferences is None:
+        print("User does not have preferences")
+    else:
+        print("User has preferences")
+    # print(user_has_preferences)
     return user_has_preferences

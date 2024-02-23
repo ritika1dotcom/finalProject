@@ -65,7 +65,7 @@ def featured_music(request):
     if request.user.is_authenticated:
         user_has_preferences = preferences_view(request)
         form = user_has_preferences  # Now user_has_preferences is a form instance
-
+    print(user_has_preferences,"featured")
 
     # Fetch playlists for each keyword
     featured_playlists = []
@@ -431,7 +431,6 @@ def recommend_song(request, username):
         }
 
     return render(request, 'collections.html', context)
-
 
 def get_user_song_list():
     # Fetch all users
