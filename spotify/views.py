@@ -9,7 +9,7 @@ from django.conf import settings
 import random
 import numpy as np
 from users.form import PreferencesForm
-from users.models import PlayHistory
+from users.models import PlayHistory, UserPreferences
 from django.contrib.auth.models import User
 from itertools import combinations
 from django.http import JsonResponse
@@ -57,24 +57,26 @@ def search_song(request):
 
 def featured_music(request):
     print("home")
-    # Define a list of keywords to search for in playlist names
-    keywords = [ 'K-pop','Rock','Pop', 'Love Song', 'Japanese','Nepali', 'Bollywood']
+
+    # Fetch user preferences
     user_has_preferences = None
-    form = None
-
-    # Check if the user is authenticated before calling preferences_view
     if request.user.is_authenticated:
-        user_has_preferences = preferences_view(request)
-        form = user_has_preferences  # Now user_has_preferences is a form instance
-
+        try:
+            user_preferences = UserPreferences.objects.get(user=request.user)
+            # user_has_preferences = PreferencesForm(instance=user_preferences)
+            user_has_preferences = None
+        except UserPreferences.DoesNotExist:
+            user_has_preferences = PreferencesForm()
 
     # Fetch playlists for each keyword
+    keywords = ['K-pop', 'Rock', 'Pop', 'Love Song', 'Japanese', 'Nepali', 'Bollywood']
     featured_playlists = []
+    
+
     for keyword in keywords:
         # Fetch a list of featured playlists for the current keyword
         playlists = sp.search(q=keyword, type='playlist', limit=1)
 
-        # If no playlists were found for the keyword, skip to the next one
         if not playlists['playlists']['items']:
             continue
 
@@ -93,8 +95,6 @@ def featured_music(request):
         featured_tracks = []
         for track_data in selected_tracks_data:
             track = track_data["track"]
-            
-            # Get the track's main artist's details
             artist_uri = track["artists"][0]["uri"]
             artist_info = sp.artist(artist_uri)
             album_image_url = track["album"]["images"][0]["url"] if track["album"]["images"] else None
@@ -108,7 +108,7 @@ def featured_music(request):
                 "album_name": track["album"]["name"],
                 "track_popularity": track["popularity"],
                 "album_image": album_image_url,
-                "preview_url": track.get("preview_url") 
+                "preview_url": track.get("preview_url")
             })
 
         # Add the playlist details along with its tracks to the featured_playlists list
@@ -116,10 +116,12 @@ def featured_music(request):
             "playlist_name": playlist_name,
             "tracks": featured_tracks,
         })
-        print('featured', featured_playlists);
-        print("form",form)
+    print("featured",featured_playlists)
+    print(user_has_preferences,"user")
+    
+    # Pass the form and playlists to the template
+    return render(request, 'home.html', {'featured_playlists': featured_playlists, 'user_has_preferences': user_has_preferences})
 
-    return render(request, 'home.html', {'featured_playlists': featured_playlists, 'user_has_preferences': user_has_preferences, 'form':form})
 
 def get_all_songs():
     # Fetch a list of featured playlists

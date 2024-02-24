@@ -41,10 +41,10 @@
             display: inline-block;
             height: 40px;
         }
-        /* body.loading {
+        body.loading {
             background-color: rgba(255, 255, 255, 0.9); 
             overflow: hidden;
-        } */
+        }
         .loader {
             border: 10px solid #f3f3f3;
             border-radius: 50%;
@@ -71,7 +71,7 @@
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
-        /* .overlay {
+        .overlay {
             position: fixed;
             top: 0;
             left: 0;
@@ -80,7 +80,7 @@
             background-color: rgba(255, 255, 255, 0.5);
             display: none;
             z-index: 99;
-        } */
+        }
     </style>
     <script>
         function showLoadingSpinner() {
@@ -165,7 +165,7 @@
 </head>
 
 <body>
-    <!-- <div class="overlay"></div> -->
+    <div class="overlay"></div>
     {% if messages %}
         {% for message in messages %}
             <script>
@@ -267,7 +267,7 @@
                     </form>
                 </div>
             </div>
-            <!-- <div id="loadingSpinner" class="loader"></div> -->
+            <div id="loadingSpinner" class="loader"></div>
         </nav>
             <!-- Main Content -->
             <div class="flex-grow p-3" style="background-color:#ec9a86; ">

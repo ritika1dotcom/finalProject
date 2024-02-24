@@ -5,34 +5,8 @@
     <section>
         {% if request.user.is_authenticated %}
             <h2 class="font-semibold text-xl py-2">Hello {{ request.user.username }}</h2>
-        {% else %}
-            <h2 class="font-semibold text-xl py-2">Welcome, Guest!</h2>
-        {% endif %}
-        
-        
-        {% for playlist in featured_playlists %}
-            <h2 class="text-2xl font-bold p-5">{{ playlist.playlist_name }}</h2>
-            <div class="grid grid-cols-6 gap-4" style="width: 100%">
-                {% for track in playlist.tracks %}
-                    <div {% if user.is_authenticated %} onclick="playAndMakeTransparent(this, '{{ track.preview_url }}', '{{ track.name }}', '{{ track.artist_name }}','{{track.album_image}}');" {% else %} onclick="showLoginAlert()" {% endif %}>
-                        <div class="card" style="width: 200px; margin-bottom: 50px;">
-                            <img class="card-img-top" style="height: 150px;" src="{{ track.album_image }}" alt="{{ track.album_name }}">
-                            <div class="card-body" style="height: 200px">
-                                <h2 class="text-green-600 text-base line-clamp-1">{{ track.name }}</h2>
-                                <h3 class="text-medium">By <strong>{{ track.artist_name }}</strong></h3>
-                                <!-- <p class="text-sm">Popularity: {{ track.track_popularity }}</p>
-                                <p class="text-sm line-clamp-1">Genres: {{track.artist_genres}} </p> -->
-                            </div>
-                        </div>
-                    </div>
-                {% endfor %}
-            </div>
-        {% endfor %}
-
-        {% if user.is_authenticated %}
-        <!-- {% if not user_has_preferences %} -->
+            {% if user_has_preferences %}
             <!-- User preference Modal  -->
-            <p>somrejbkjn</p>
             <div class="modal fade" id="userPreferencesModal" tabindex="-1" aria-labelledby="userPreferencesModalLabel" aria-hidden="true">
                 <div class="modal-dialog">
                     <div class="modal-content bg-opacity-80 rounded-lg shadow-md">
@@ -46,12 +20,12 @@
 
                                 <div class="mb-4">
                                     <label for="age_group" class="block text-gray-300">Age Group</label>
-                                    {{ form.age_group }}
+                                    {{ user_has_preferences.age_group }}
                                 </div>
 
                                 <div class="mb-4">
                                     <label class="block text-gray-300">Favorite Music Genres</label>
-                                    {{ form.favorite_music_genre }}
+                                    {{ user_has_preferences.favorite_music_genre }}
                                 </div>
 
                                 <button type="button" onclick="savePreferences()" class="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded focus:outline-none focus:shadow-outline-blue active:bg-blue-700">Save Preferences</button>
@@ -76,9 +50,30 @@
                     });
                 }
             </script>
-        <!-- {% endif %} -->
-    {% endif %}
-    
+        {% endif %}
+        {% else %}
+            <h2 class="font-semibold text-xl py-2">Welcome, Guest!</h2>
+        {% endif %}
+
+        
+        {% for playlist in featured_playlists %}
+            <h2 class="text-2xl font-bold p-5">{{ playlist.playlist_name }}</h2>
+            <div class="grid grid-cols-6 gap-4" style="width: 100%">
+                {% for track in playlist.tracks %}
+                    <div {% if user.is_authenticated %} onclick="playAndMakeTransparent(this, '{{ track.preview_url }}', '{{ track.name }}', '{{ track.artist_name }}','{{track.album_image}}');" {% else %} onclick="showLoginAlert()" {% endif %}>
+                        <div class="card" style="width: 200px; margin-bottom: 50px;">
+                            <img class="card-img-top" style="height: 150px;" src="{{ track.album_image }}" alt="{{ track.album_name }}">
+                            <div class="card-body" style="height: 200px">
+                                <h2 class="text-green-600 text-base line-clamp-1">{{ track.name }}</h2>
+                                <h3 class="text-medium">By <strong>{{ track.artist_name }}</strong></h3>
+                                <!-- <p class="text-sm">Popularity: {{ track.track_popularity }}</p>
+                                <p class="text-sm line-clamp-1">Genres: {{track.artist_genres}} </p> -->
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        {% endfor %}
     </section>
 </div>
 
