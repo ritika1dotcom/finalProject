@@ -115,7 +115,7 @@ def featured_music(request):
             "playlist_name": playlist_name,
             "tracks": featured_tracks,
         })
-        print('featured', user_has_preferences);
+        print('featured', featured_playlists);
 
     return render(request, 'home.html', {'featured_playlists': featured_playlists, 'user_has_preferences': user_has_preferences, 'form':form})
 
