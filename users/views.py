@@ -93,5 +93,5 @@ def preferences_view(request):
             preferences.user = request.user
             preferences.save()
             user_has_preferences = PreferencesForm(instance=preferences)
-
+    # print(user_has_preferences,"prference")
     return user_has_preferences

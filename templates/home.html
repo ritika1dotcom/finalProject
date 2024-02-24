@@ -30,8 +30,9 @@
         {% endfor %}
 
         {% if user.is_authenticated %}
-        {% if not user_has_preferences %}
+        <!-- {% if not user_has_preferences %} -->
             <!-- User preference Modal  -->
+            <p>somrejbkjn</p>
             <div class="modal fade" id="userPreferencesModal" tabindex="-1" aria-labelledby="userPreferencesModalLabel" aria-hidden="true">
                 <div class="modal-dialog">
                     <div class="modal-content bg-opacity-80 rounded-lg shadow-md">
@@ -75,7 +76,7 @@
                     });
                 }
             </script>
-        {% endif %}
+        <!-- {% endif %} -->
     {% endif %}
     
     </section>

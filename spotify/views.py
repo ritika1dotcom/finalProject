@@ -56,8 +56,9 @@ def search_song(request):
 
 
 def featured_music(request):
+    print("home")
     # Define a list of keywords to search for in playlist names
-    keywords = [ 'K-pop','Rock','Pop', 'Chinese', 'Japanese','Nepali', 'Bollywood']
+    keywords = [ 'K-pop','Rock','Pop', 'Love Song', 'Japanese','Nepali', 'Bollywood']
     user_has_preferences = None
     form = None
 
@@ -116,6 +117,7 @@ def featured_music(request):
             "tracks": featured_tracks,
         })
         print('featured', featured_playlists);
+        print("form",form)
 
     return render(request, 'home.html', {'featured_playlists': featured_playlists, 'user_has_preferences': user_has_preferences, 'form':form})
 
