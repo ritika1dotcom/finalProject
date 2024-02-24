@@ -521,29 +521,26 @@ def recommend(username,data):
 @csrf_exempt
 @login_required  # Decorator to ensure the user is authenticated
 def submit_feedback(request, username):
-    
     user = get_object_or_404(User, username=username)
 
     if request.method == 'POST':
         try:
             data = json.loads(request.body.decode('utf-8'))
             print(data)
+            
+            # Extract values from data
             algorithm = data.get('data', {}).get('algorithm')
-            print(algorithm)
-            reasons = data.get('data', {}).get('reasons', [])
-            print(reasons,"reasons")
+            user_age_group = data.get('data', {}).get('user_age_group')
+            user_favorite_genre = data.get('data', {}).get('user_favorite_genre')
 
             # Create Feedback instance and save to the database
             feedback = Feedback.objects.create(
                 user=user,
                 algorithm=algorithm,
-                genre='genre' in reasons,
-                mood='mood' in reasons,
-                new_music='new_music' in reasons,
-                artists='artists' in reasons,
-                nostalgia='nostalgia' in reasons,
+                user_age_group_field=user_age_group,
+                user_favorite_genre_field=user_favorite_genre,
             )
-            print(feedback,"feedback")
+            print(feedback, "feedback")
             return JsonResponse({'status': 'success'})
         except json.JSONDecodeError as e:
             return JsonResponse({'status': 'error', 'message': 'Invalid JSON data'})
@@ -554,7 +551,7 @@ def submit_feedback(request, username):
             return JsonResponse({'status': 'error', 'message': 'Error processing feedback'})
     else:
         return JsonResponse({'status': 'error', 'message': 'Invalid request method'})
-    
+
 
 def chart(request):
     print('Chart view called')
