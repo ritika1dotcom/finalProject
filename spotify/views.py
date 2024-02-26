@@ -8,7 +8,7 @@ from spotipy.oauth2 import SpotifyClientCredentials
 from django.conf import settings
 import random
 import numpy as np
-from users.form import PreferencesForm
+from django.db.models import F
 from users.models import PlayHistory, UserPreferences
 from django.contrib.auth.models import User
 from itertools import combinations
@@ -262,16 +262,26 @@ def generate_random_recommendations(favorite_genre, min_confidence):
     # Generate a list of random songs with high confidence
     all_music = get_all_songs(favorite_genre)
 
-    random_songs = get_random_songs(all_music)
-    random_recommendation = random.sample(random_songs, min(5, len(random_songs)))
-    random_recommendations = [{'song': song, 'song_details': all_music[song]} for song in random_recommendation]
+    # Filter out songs with popularity below min_confidence
+    high_popularity_songs = {song: details for song, details in all_music.items() if details['track_popularity'] >= min_confidence}
+
+    # Sort the high_popularity_songs dictionary by popularity in descending order
+    sorted_songs = sorted(high_popularity_songs.items(), key=lambda x: x[1]['track_popularity'], reverse=True)
+
+    # Extract song names from sorted_songs
+    random_recommendation = [song for song, details in sorted_songs]
+
+    # Select a random subset of the top songs, limit to 10 songs or less
+    num_recommendations = min(10, len(random_recommendation))
+    random_recommendations = [{'song': song, 'song_details': all_music[song]} for song in random_recommendation[:num_recommendations]]
     return random_recommendations
+
 
 def generate_random_matrix(favorite_genre,min_confidence):
     # Generate a list of random songs with high confidence
     all_music = get_all_songs(favorite_genre)
     random_songs = get_random_songs(all_music)
-    random_matrix = random.sample(random_songs, min(5, len(random_songs)))
+    random_matrix = random.sample(random_songs, min(10, len(random_songs)))
     random_recommendation_matrix = [{'song': song, 'song_details': all_music[song]} for song in random_matrix]
     return random_recommendation_matrix
 
@@ -414,8 +424,8 @@ def recommend_song(request, username):
 
     # If there are no recommendations, generate a random playlist
     if not recommendations:
-        song = generate_random_recommendations(favorite_music_genre , 0.5)
-        random_recommendation_matrix = generate_random_matrix(favorite_music_genre ,0.5)
+        song = generate_random_recommendations(favorite_music_genre , min_confidence)
+        random_recommendation_matrix = generate_random_matrix(favorite_music_genre ,min_confidence)
         # print("song",song)
         context = {
             'user_obj': user_obj,
@@ -542,7 +552,7 @@ def recommend(username,data):
     # Make recommendations for a user (replace user_id_to_recommend with the actual user you want recommendations for)
     user_id_to_recommend = 1
     user_recommendations = np.dot(user_matrix[user_id_to_recommend - 1, :], song_matrix)
-    k = 5
+    k = 10
     # Get indices of top recommended songs
     top_song_indices = np.argsort(user_recommendations)[::-1][:k]  # k is the number of top recommendations
 
@@ -569,9 +579,6 @@ def recommend(username,data):
 
     }
     return context
-
-
-
 
 
 @csrf_exempt
@@ -612,17 +619,15 @@ def submit_feedback(request, username):
 def chart(request):
     print('Chart view called')
     # Aggregate feedback data for all users and algorithms
-    # Aggregate feedback data for all users and algorithms
-    feedback_data = Feedback.objects.values('user__username', 'algorithm', 'genre', 'mood', 'new_music', 'artists', 'nostalgia')
-
-    # Convert boolean values to actual booleans
-    for entry in feedback_data:
-        for key in ['genre', 'mood', 'new_music', 'artists', 'nostalgia']:
-            entry[key] = bool(entry[key])
+    feedback_data = Feedback.objects.annotate(
+        user_age_group=F('user__user_preferences__age_group'),
+        user_favorite_genre=F('user__user_preferences__favorite_music_genre')
+    ).values('user__username', 'algorithm', 'user_age_group', 'user_favorite_genre')
 
     feedback_data_list = list(feedback_data)
 
     return JsonResponse({'feedback_data': feedback_data_list}, safe=False)
+
 def chart_page(request):
     # Get the JSON data from the other view
     json_data = chart(request).content.decode('utf-8')
@@ -630,19 +635,15 @@ def chart_page(request):
     # Parse the JSON string into a Python object
     feedback_data = json.loads(json_data)['feedback_data']
 
-    # Convert boolean values to lowercase strings
+    # Convert boolean values to lowercase strings and handle user_age_group and user_favorite_genre
     transformed_data = [
         {
             'user__username': entry['user__username'],
             'algorithm': entry['algorithm'],
-            'genre': str(entry['genre']).lower(),
-            'mood': str(entry['mood']).lower(),
-            'new_music': str(entry['new_music']).lower(),
-            'artists': str(entry['artists']).lower(),
-            'nostalgia': str(entry['nostalgia']).lower(),
+            'user_age_group': entry['user_age_group'] if entry['user_age_group'] else "Unknown",
+            'user_favorite_genre': entry['user_favorite_genre'] if entry['user_favorite_genre'] else "Unknown",
         }
         for entry in feedback_data
     ]
-    
 
     return render(request, 'chart.html', {'json_data': transformed_data})

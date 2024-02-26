@@ -13,105 +13,65 @@
 
     <script>
         // Parse the JSON string into a JavaScript object
-        var feedbackData = {{json_data | safe}}
-        // var feedbackData = [
-        //     {"user__username": "admin1", "algorithm": "Matrix", "genre": true, "mood": true, "new_music": false, "artists": true, "nostalgia": false}, 
-        //     {"user__username": "user2", "algorithm": "Matrix", "genre": false, "mood": true, "new_music": true, "artists": true, "nostalgia": false}, 
-        //     {"user__username": "user2", "algorithm": "Matrix", "genre": true, "mood": false, "new_music": true, "artists": false, "nostalgia": false}, 
-        //     {"user__username": "admin1", "algorithm": "Matrix", "genre": false, "mood": false, "new_music": true, "artists": true, "nostalgia": true}, 
-        //     {"user__username": "user2", "algorithm": "Matrix", "genre": false, "mood": false, "new_music": true, "artists": true, "nostalgia": false}, 
-        //     {"user__username": "admin1", "algorithm": "Matrix", "genre": false, "mood": true, "new_music": true, "artists": false, "nostalgia": true}, 
-        //     {"user__username": "sups", "algorithm": "Matrix", "genre": false, "mood": true, "new_music": true, "artists": false, "nostalgia": false}, 
-        //     {"user__username": "admin1", "algorithm": "Apriori", "genre": false, "mood": false, "new_music": true, "artists": true, "nostalgia": false}, 
-        //     {"user__username": "admin1", "algorithm": "Apriori", "genre": false, "mood": false, "new_music": true, "artists": false, "nostalgia": false}, 
-        //     {"user__username": "sups", "algorithm": "Apriori", "genre": true, "mood": false, "new_music": true, "artists": true, "nostalgia": false}, 
-        //     {"user__username": "user1", "algorithm": "Apriori", "genre": false, "mood": true, "new_music": false, "artists": true, "nostalgia": false}, 
-        //     {"user__username": "user2", "algorithm": "Matrix", "genre": true, "mood": false, "new_music": true, "artists": false, "nostalgia": true},
-        //     {"user__username": "user1", "algorithm": "Matrix", "genre": false, "mood": false, "new_music": true, "artists": true, "nostalgia": false}, 
-        //     {"user__username": "admin1", "algorithm": "Matrix", "genre": false, "mood": true, "new_music": false, "artists": false, "nostalgia": true}, 
-        //     {"user__username": "sups", "algorithm": "Matrix", "genre": true, "mood": false, "new_music": true, "artists": false, "nostalgia": false}, 
-        //     {"user__username": "user1", "algorithm": "Matrix", "genre": true, "mood": true, "new_music": false, "artists": false, "nostalgia": true}, 
-        //     {"user__username": "sups", "algorithm": "Apriori", "genre": false, "mood": false, "new_music": true, "artists": true, "nostalgia": true}, 
-        //     {"user__username": "user2", "algorithm": "Apriori", "genre": false, "mood": false, "new_music": false, "artists": false, "nostalgia": true}, 
-        //     {"user__username": "admin1", "algorithm": "Matrix", "genre": false, "mood": false, "new_music": true, "artists": true, "nostalgia": false}, 
-        //     {"user__username": "admin1", "algorithm": "Apriori", "genre": false, "mood": false, "new_music": false, "artists": true, "nostalgia": true}, 
-        //     {"user__username": "sups", "algorithm": "Apriori", "genre": false, "mood": false, "new_music": false, "artists": true, "nostalgia": false}, 
-        //     {"user__username": "user2", "algorithm": "Matrix", "genre": true, "mood": false, "new_music": true, "artists": false, "nostalgia": false}, 
-        //     {"user__username": "admin1", "algorithm": "Apriori", "genre": true, "mood": false, "new_music": false, "artists": true, "nostalgia": false}, 
-        //     {"user__username": "user2", "algorithm": "Apriori", "genre": false, "mood": true, "new_music": false, "artists": true, "nostalgia": false}, 
-        //     {"user__username": "sups", "algorithm": "Matrix", "genre": false, "mood": false, "new_music": false, "artists": true, "nostalgia": true}
-        // ];
-        
+        var feedbackData = {{ json_data | safe }};
 
-    
-        var algorithms = ['Matrix', 'Apriori'];
-        var labels = ['genre', 'mood', 'new_music', 'artists', 'nostalgia'];
-        var datasets = [];
-        
+        // Extract algorithms and their counts
+        var algorithmCounts = {};
         feedbackData.forEach(function(entry) {
-            entry.genre = entry.genre === 'true';
-            entry.mood = entry.mood === 'true';
-            entry.new_music = entry.new_music === 'true';
-            entry.artists = entry.artists === 'true';
-            entry.nostalgia = entry.nostalgia === 'true';
+            var algorithm = entry.algorithm;
+            if (algorithmCounts[algorithm]) {
+                algorithmCounts[algorithm]++;
+            } else {
+                algorithmCounts[algorithm] = 1;
+            }
         });
 
-        // Extract data for each label and each algorithm
-        algorithms.forEach(function(algorithm) {
-            var algorithmData = feedbackData.filter(function(entry) {
-                return entry.algorithm === algorithm;
-            });
-
-            var data = labels.map(function(label) {
-                var count = algorithmData.reduce(function(acc, entry) {
-                    return acc + (entry[label] ? 1 : 0);
-                }, 0);
-
-                return count;
-            });
-
-            datasets.push({
-                label: algorithm,
-                data: data,
-                backgroundColor: getRandomColor(),
-                borderColor: getRandomColor(),
-                borderWidth: 1,
-                // barThickness: 20
-            });
+        // Prepare data for the chart
+        var algorithms = Object.keys(algorithmCounts);
+        var counts = algorithms.map(function(algorithm) {
+            return algorithmCounts[algorithm];
         });
+
+        // Generate random colors for the bars
+        var backgroundColors = generateRandomColors(algorithms.length);
 
         // Create a bar chart using Chart.js
         var ctx = document.getElementById('feedbackChart').getContext('2d');
         var feedbackChart = new Chart(ctx, {
             type: 'bar',
             data: {
-                labels: labels,
-                datasets: datasets
+                labels: algorithms,
+                datasets: [{
+                    label: 'Algorithm Usage',
+                    data: counts,
+                    backgroundColor: backgroundColors,
+                    borderColor: backgroundColors, // Use the same colors for border
+                    borderWidth: 1,
+                }]
             },
             options: {
                 title: {
                     display: true,
-                    text: "User Feedback Bar Chart"
+                    text: "Algorithm Usage Bar Chart"
                 },
                 scales: {
-                    x: {
-                        beginAtZero: true
-                    },
-                    y: {
-                        stacked: true
-                    }
+                    yAxes: [{
+                        ticks: {
+                            beginAtZero: true
+                        }
+                    }]
                 }
             }
         });
 
-        // Function to generate random color for each dataset
-        function getRandomColor() {
-            var letters = '0123456789ABCDEF';
-            var color = '#';
-            for (var i = 0; i < 6; i++) {
-                color += letters[Math.floor(Math.random() * 16)];
+        // Function to generate random colors
+        function generateRandomColors(numColors) {
+            var colors = [];
+            for (var i = 0; i < numColors; i++) {
+                var color = '#' + Math.floor(Math.random() * 16777215).toString(16); // Generate random hex color
+                colors.push(color);
             }
-            return color;
+            return colors;
         }
     </script>
     
