@@ -207,7 +207,8 @@ def listening_history(user):
     ]
     return user_history_tuples
 
-def get_user_song_data(age_group, favorite):
+
+def get_user_song_data(age_group, favorite_music_genre):
     # Fetch all users
     users = User.objects.all()
 
@@ -216,34 +217,39 @@ def get_user_song_data(age_group, favorite):
 
     # Iterate through each user
     for user in users:
-        # Fetch the listening history entries for the user
-        user_history_entries = PlayHistory.objects.filter(user=user).values_list('song_title', 'artist_name', 'album_image','preview_url')
+        # Fetch the listening history entries for the user based on age_group
+        if age_group == user.user_preferences.age_group:
+            # Assuming that you have a relationship between User and UserPreferences
+            user_history_entries = PlayHistory.objects.filter(user=user).values_list('song_title', 'artist_name', 'album_image', 'preview_url')
 
-        # Convert the queryset of tuples to a set of tuples
-        user_history_entries = {tuple(entry) for entry in user_history_entries}
+            # Convert the queryset of tuples to a set of tuples
+            user_history_entries = {tuple(entry) for entry in user_history_entries}
 
-        # Store the listening history in the dictionary
-        user_song_data[user.username] = user_history_entries
-    # print("songs",user_song_data)
+            # Store the listening history in the dictionary
+            user_song_data[user.username] = user_history_entries
+
+    # print("songs", user_song_data)
     return user_song_data
 
 
-def generate_random_recommendations(min_confidence):
+
+def generate_random_recommendations(favorite_genre, min_confidence):
     # Generate a list of random songs with high confidence
-    all_music = get_all_songs()
-    
+    all_music = get_all_songs(favorite_genre)
+
     random_songs = get_random_songs(all_music)
     random_recommendation = random.sample(random_songs, min(5, len(random_songs)))
     random_recommendations = [{'song': song, 'song_details': all_music[song]} for song in random_recommendation]
     return random_recommendations
 
-def generate_random_matrix(min_confidence):
+def generate_random_matrix(favorite_genre,min_confidence):
     # Generate a list of random songs with high confidence
-    all_music = get_all_songs()
+    all_music = get_all_songs(favorite_genre)
     random_songs = get_random_songs(all_music)
     random_matrix = random.sample(random_songs, min(5, len(random_songs)))
     random_recommendation_matrix = [{'song': song, 'song_details': all_music[song]} for song in random_matrix]
     return random_recommendation_matrix
+
 
 def get_random_songs(all_music):
     # Extract song names from the featured tracks
@@ -375,6 +381,7 @@ def recommend_song(request, username):
     data = get_user_song_list()
     # print("list", data)
     # print("song",song_data)
+    print("age",age_group,"favorite",favorite_music_genre)
     frequent_itemsets = generate_frequent_itemsets(song_data, min_support_threshold)
     association_rule = generate_association_rules(frequent_itemsets)
     recommendations = recommend_songs(song_data, association_rule,user_obj,sp)
