@@ -78,13 +78,14 @@ def add_song_history(request):
 
 def preferences_view(request):
     user_has_preferences = None
+    user_preferences = None
 
     if request.user.is_authenticated:
         try:
             user_preferences = UserPreferences.objects.get(user=request.user)
-            user_has_preferences = PreferencesForm(instance=user_preferences)
-        except UserPreferences.DoesNotExist:
-            user_preferences = None  
+            # user_has_preferences = PreferencesForm(instance=user_preferences)
+            user_has_preferences = None
+        except UserPreferences.DoesNotExist:  
             user_has_preferences = PreferencesForm()
 
     if request.method == 'POST':
