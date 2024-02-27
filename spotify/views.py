@@ -120,36 +120,6 @@ def featured_music(request):
     return render(request, 'home.html', {'featured_playlists': featured_playlists, 'user_has_preferences': user_has_preferences, 'form':form})
 
 
-def user_preferences_view(request, username):
-    # Check if the user is authenticated
-    if request.user.is_authenticated:
-        try:
-            # Attempt to get the user's preferences
-            user_preferences = UserPreferences.objects.get(user=request.user)
-
-            # Extract relevant information
-            age_group = user_preferences.age_group
-            favorite_music_genre = user_preferences.favorite_music_genre
-
-            # Generate random recommendations based on favorite music genre
-            # recommendations = generate_random_recommendations(favorite_music_genre, 0.5)
-            # matrix_recommendation = generate_random_matrix(favorite_music_genre, 0.5)
-            # # Generate user song data based on age_group and favorite music genre
-            # user_song_data = get_user_song_data(age_group, favorite_music_genre)
-
-            # Return recommendations as JSON response
-            return JsonResponse({'age_group': age_group, 'favorite_music_genre': favorite_music_genre})
-
-        except UserPreferences.DoesNotExist:
-            # Handle the case where the user doesn't have preferences
-            return JsonResponse({'message': 'No preferences found.'})
-
-    else:
-        # Handle the case where the user is not authenticated
-        return JsonResponse({'message': 'User not authenticated.'})
-
-
-
 def get_all_songs(favorite_music_genres):
     all_music = {}
     print("genres get all", favorite_music_genres)
