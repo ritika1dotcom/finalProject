@@ -622,7 +622,7 @@ def chart(request):
     feedback_data = Feedback.objects.annotate(
         user_age_group=F('user__user_preferences__age_group'),
         user_favorite_genre=F('user__user_preferences__favorite_music_genre')
-    ).values('user__username', 'algorithm', 'user_age_group', 'user_favorite_genre')
+    ).values('user__username', 'algorithm', 'user_age_group', 'user_favorite_genre', 'feedback_date')  # Include feedback date
 
     feedback_data_list = list(feedback_data)
 
@@ -642,6 +642,7 @@ def chart_page(request):
             'algorithm': entry['algorithm'],
             'user_age_group': entry['user_age_group'] if entry['user_age_group'] else "Unknown",
             'user_favorite_genre': entry['user_favorite_genre'] if entry['user_favorite_genre'] else "Unknown",
+            'feedback_date': entry['feedback_date'],
         }
         for entry in feedback_data
     ]

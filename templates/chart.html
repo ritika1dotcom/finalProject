@@ -15,44 +15,62 @@
         // Parse the JSON string into a JavaScript object
         var feedbackData = {{ json_data | safe }};
 
-        // Extract algorithms and their counts
-        var algorithmCounts = {};
+        // Group feedback data by week and algorithm
+        var feedbackByWeek = {};
         feedbackData.forEach(function(entry) {
+            var date = new Date(entry.feedback_date);
+            var weekNumber = getWeekNumber(date);
             var algorithm = entry.algorithm;
-            if (algorithmCounts[algorithm]) {
-                algorithmCounts[algorithm]++;
-            } else {
-                algorithmCounts[algorithm] = 1;
+            if (!feedbackByWeek[weekNumber]) {
+                feedbackByWeek[weekNumber] = {
+                    matrix: 0,
+                    apriori: 0
+                };
+            }
+            if (algorithm === 'Matrix') {
+                feedbackByWeek[weekNumber].matrix++;
+            } else if (algorithm === 'Apriori') {
+                feedbackByWeek[weekNumber].apriori++;
             }
         });
 
+        // Extract week numbers
+        var weeks = Object.keys(feedbackByWeek);
+
         // Prepare data for the chart
-        var algorithms = Object.keys(algorithmCounts);
-        var counts = algorithms.map(function(algorithm) {
-            return algorithmCounts[algorithm];
+        var matrixCounts = weeks.map(function(weekNumber) {
+            return feedbackByWeek[weekNumber].matrix;
         });
 
-        // Generate random colors for the bars
-        var backgroundColors = generateRandomColors(algorithms.length);
+        var aprioriCounts = weeks.map(function(weekNumber) {
+            return feedbackByWeek[weekNumber].apriori;
+        });
 
         // Create a bar chart using Chart.js
         var ctx = document.getElementById('feedbackChart').getContext('2d');
         var feedbackChart = new Chart(ctx, {
             type: 'bar',
             data: {
-                labels: algorithms,
+                labels: weeks,
                 datasets: [{
-                    label: 'Algorithm Usage',
-                    data: counts,
-                    backgroundColor: backgroundColors,
-                    borderColor: backgroundColors, // Use the same colors for border
-                    borderWidth: 1,
+                    label: 'Matrix Feedback Count',
+                    data: matrixCounts,
+                    backgroundColor: 'rgba(255, 99, 132, 0.2)',
+                    borderColor: 'rgba(255, 99, 132, 1)',
+                    borderWidth: 1
+                },
+                {
+                    label: 'Apriori Feedback Count',
+                    data: aprioriCounts,
+                    backgroundColor: 'rgba(54, 162, 235, 0.2)',
+                    borderColor: 'rgba(54, 162, 235, 1)',
+                    borderWidth: 1
                 }]
             },
             options: {
                 title: {
                     display: true,
-                    text: "Algorithm Usage Bar Chart"
+                    text: "Feedback Count by Algorithm and Week"
                 },
                 scales: {
                     yAxes: [{
@@ -64,14 +82,10 @@
             }
         });
 
-        // Function to generate random colors
-        function generateRandomColors(numColors) {
-            var colors = [];
-            for (var i = 0; i < numColors; i++) {
-                var color = '#' + Math.floor(Math.random() * 16777215).toString(16); // Generate random hex color
-                colors.push(color);
-            }
-            return colors;
+        // Function to get week number from date
+        function getWeekNumber(date) {
+            var onejan = new Date(date.getFullYear(), 0, 1);
+            return Math.ceil(((date - onejan) / 86400000 + onejan.getDay() + 1) / 7);
         }
     </script>
     
