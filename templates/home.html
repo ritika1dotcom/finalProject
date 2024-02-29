@@ -53,7 +53,11 @@
                                     {{ form.favorite_music_genre }}
                                 </div>
 
-                                <button type="button" onclick="savePreferences()" class="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded focus:outline-none focus:shadow-outline-blue active:bg-blue-700">Save Preferences</button>
+                                <div class="flex flex-row justify-around">
+                                    <button type="button" onclick="savePreferences()" class="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded focus:outline-none focus:shadow-outline-blue active:bg-blue-700">Save Preferences</button>
+                                    <button type="button" id="recommendButton" onclick="redirectRecommend()" class="bg-blue-700 hover:bg-blue-900 text-white font-semibold py-2 px-4 rounded focus:outline-none focus:shadow-outline-blue active:bg-blue-700" disabled>Recommend</button>
+                                </div>
+                                
                             </form>
                         </div>
                     </div>
@@ -73,6 +77,12 @@
                         title: 'Preferences Saved!',
                         text: 'Your preferences have been successfully saved.',
                     });
+                    // Enable Recommend button after preferences are saved
+                    document.getElementById('recommendButton').disabled = false;
+                }
+                function redirectRecommend() {
+                    // Redirect to the specified URL
+                    window.location.href = "{% url 'recommend_song' request.user.username %}";
                 }
             </script>
         {% endif %}
