@@ -77,8 +77,8 @@ def add_song_history(request):
     return JsonResponse({'status': 'ok', 'message': 'valid request'})
 
 def preferences_view(request):
-    user_has_preferences = None
     user_preferences = None
+    user_has_preferences = None
 
     if request.user.is_authenticated:
         try:
@@ -86,14 +86,14 @@ def preferences_view(request):
             # user_has_preferences = PreferencesForm(instance=user_preferences)
             user_has_preferences = None
         except UserPreferences.DoesNotExist:  
-            user_has_preferences = PreferencesForm()
-
-    if request.method == 'POST':
-        form = PreferencesForm(request.POST, instance=user_preferences)
-        if form.is_valid():
-            preferences = form.save(commit=False)
-            preferences.user = request.user
-            preferences.save()
-            user_has_preferences = PreferencesForm(instance=preferences)
-
+            if request.method == 'POST':
+                user_has_preferences = PreferencesForm(request.POST)
+                if user_has_preferences.is_valid():
+                    preferences = user_has_preferences.save(commit=False)
+                    preferences.user = request.user
+                    preferences.save()
+                    # return redirect('preferences_view')  # Redirect to avoid re-displaying form with errors
+            else:
+                user_has_preferences = PreferencesForm()
+    print(user_has_preferences,"user")
     return user_has_preferences
