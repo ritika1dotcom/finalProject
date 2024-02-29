@@ -133,6 +133,14 @@
       console.error('Error getting user preferences:', error);
     }
   });
+  function showFeedbackModal() {
+    $('#feedbackModal').modal('show');
+  }
+
+  // Call showFeedbackModal after 30 seconds
+  setTimeout(showFeedbackModal, 30000);
+
+
 
   function submitFeedback() {
     const algorithm = document.getElementById('algorithm').value;

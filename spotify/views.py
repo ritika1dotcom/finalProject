@@ -1,6 +1,6 @@
 import itertools
 import traceback
-from django.shortcuts import get_object_or_404, render
+from django.shortcuts import get_object_or_404, redirect, render
 import pandas as pd
 import requests
 import spotipy
@@ -13,7 +13,7 @@ from users.models import PlayHistory, UserPreferences
 from django.contrib.auth.models import User
 from itertools import combinations
 from django.http import JsonResponse
-from .models import Feedback
+from .models import Feedback, Playlist, Track
 from django.contrib.auth.decorators import login_required
 import json
 from django.views.decorators.csrf import csrf_exempt
@@ -54,10 +54,54 @@ def search_song(request):
 
     return render(request, 'search.html', {'tracks': tracks})
 
+# def fetch_music(request):
+#     # Define a list of keywords to search for in playlist names
+#     keywords = ['K-pop', 'Rock', 'Pop', 'Love Songs', 'Japanese', 'Nepali', 'Bollywood']
+
+#     for keyword in keywords:
+#         playlists = sp.search(q=keyword, type='playlist', limit=1)
+#         if not playlists['playlists']['items']:
+#             continue
+
+#         playlist_data = random.choice(playlists['playlists']['items'])
+#         playlist_uri = playlist_data['uri']
+#         playlist_name = playlist_data['name']
+
+#         all_tracks_data = sp.playlist_tracks(playlist_uri)["items"]
+#         selected_tracks_data = random.sample(all_tracks_data, min(len(all_tracks_data), 10))
+
+#         for track_data in selected_tracks_data:
+#             track = track_data["track"]
+            
+#             artist_uri = track["artists"][0]["uri"]
+#             artist_info = sp.artist(artist_uri)
+#             album_image_url = track["album"]["images"][0]["url"] if track["album"]["images"] else None
+
+#             # Save track to the database only if preview_url is not None
+#             preview_url = track.get("preview_url")
+#             if preview_url:
+#                 # Create a new playlist based on the keyword if it doesn't exist
+#                 playlist, _ = Playlist.objects.get_or_create(name=keyword)
+                
+#                 # Save the track associated with the current playlist (keyword)
+#                 new_track = Track.objects.create(
+#                     playlist=playlist,
+#                     name=track["name"],
+#                     artist_name=track["artists"][0]["name"],
+#                     artist_popularity=artist_info["popularity"],
+#                     artist_genres=artist_info["genres"],
+#                     album_name=track["album"]["name"],
+#                     track_popularity=track["popularity"],
+#                     album_image=album_image_url,
+#                     preview_url=preview_url
+#                 )
+#                 print(f"Keyword: {keyword}, Track: {new_track.name}, Artist: {new_track.artist_name}")
+#             else:
+#                 print(f"Skipping track {track['name']} because preview_url is missing.")
+
+#     return redirect('admin:index')
 
 def featured_music(request):
-    # Define a list of keywords to search for in playlist names
-    keywords = [ 'K-pop','Rock','Pop', 'Love Songs', 'Japanese','Nepali', 'Bollywood']
     user_has_preferences = None
     form = None
 
@@ -66,59 +110,20 @@ def featured_music(request):
         user_has_preferences = preferences_view(request)
         form = user_has_preferences  # Now user_has_preferences is a form instance
 
+    # Fetch all playlists from the database
+    playlists = Playlist.objects.all()
 
-    # Fetch playlists for each keyword
-    featured_playlists = []
-    for keyword in keywords:
-        # Fetch a list of featured playlists for the current keyword
-        playlists = sp.search(q=keyword, type='playlist', limit=1)
+    # Prepare data to be passed to the template
+    playlists_data = []
+    for playlist in playlists:
+        # Fetch related tracks for each playlist
+        all_tracks = playlist.track_set.all().values('name', 'artist_name', 'album_image', 'preview_url')
+        # Select ten random tracks from all tracks
+        selected_tracks = random.sample(list(all_tracks), min(len(all_tracks), 10))
+        # Append playlist and tracks data as a dictionary to playlists_data list
+        playlists_data.append({'playlist': playlist, 'tracks': selected_tracks})
 
-        # If no playlists were found for the keyword, skip to the next one
-        if not playlists['playlists']['items']:
-            continue
-
-        # Extract essential details for each playlist
-        playlist_data = random.choice(playlists['playlists']['items'])
-        playlist_uri = playlist_data['uri']
-        playlist_name = playlist_data['name']
-
-        # Fetch all tracks from the selected playlist
-        all_tracks_data = sp.playlist_tracks(playlist_uri)["items"]
-
-        # Randomly select 10 tracks from all tracks
-        selected_tracks_data = random.sample(all_tracks_data, min(10, len(all_tracks_data)))
-
-        # Extract essential details for each selected track in the playlist
-        featured_tracks = []
-        for track_data in selected_tracks_data:
-            track = track_data["track"]
-            
-            # Get the track's main artist's details
-            artist_uri = track["artists"][0]["uri"]
-            artist_info = sp.artist(artist_uri)
-            album_image_url = track["album"]["images"][0]["url"] if track["album"]["images"] else None
-
-            featured_tracks.append({
-                "uri": track["uri"],
-                "name": track["name"],
-                "artist_name": track["artists"][0]["name"],
-                "artist_popularity": artist_info["popularity"],
-                "artist_genres": artist_info["genres"],
-                "album_name": track["album"]["name"],
-                "track_popularity": track["popularity"],
-                "album_image": album_image_url,
-                "preview_url": track.get("preview_url") 
-            })
-
-        # Add the playlist details along with its tracks to the featured_playlists list
-        featured_playlists.append({
-            "playlist_name": playlist_name,
-            "tracks": featured_tracks,
-        })
-        # print('featured', featured_playlists);
-
-    return render(request, 'home.html', {'featured_playlists': featured_playlists, 'user_has_preferences': user_has_preferences, 'form':form})
-
+    return render(request, 'home.html', {'featured_playlists': playlists_data, 'user_has_preferences': user_has_preferences, 'form': form})
 
 def user_preferences_view(request, username):
     # Check if the user is authenticated
@@ -147,7 +152,6 @@ def user_preferences_view(request, username):
     else:
         # Handle the case where the user is not authenticated
         return JsonResponse({'message': 'User not authenticated.'})
-
 
 
 def get_all_songs(favorite_music_genres):

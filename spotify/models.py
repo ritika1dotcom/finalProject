@@ -24,3 +24,20 @@ class Feedback(models.Model):
             return self.user.user_preferences.favorite_music_genre
         except UserPreferences.DoesNotExist:
             return "Unknown"
+
+class Playlist(models.Model):
+    name = models.CharField(max_length=255)
+
+class Track(models.Model):
+    name = models.CharField(max_length=255)
+    artist_name = models.CharField(max_length=255)
+    artist_popularity = models.IntegerField()
+    artist_genres = models.TextField()  # You might want to consider using a separate Genre model if genres can be multiple.
+    album_name = models.CharField(max_length=255)
+    track_popularity = models.IntegerField()
+    album_image = models.URLField()
+    preview_url = models.URLField(null=True)
+    playlist = models.ForeignKey(Playlist, on_delete=models.CASCADE)
+
+    def __str__(self):
+        return f"{self.name} by {self.artist_name}"

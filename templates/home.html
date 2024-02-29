@@ -10,18 +10,16 @@
         {% endif %}
         
         
-        {% for playlist in featured_playlists %}
-            <h2 class="text-2xl font-bold p-5">{{ playlist.playlist_name }}</h2>
+        {% for playlist_data in featured_playlists %}
+            <h2 class="text-2xl font-bold p-5">{{ playlist_data.playlist.name }}</h2>
             <div class="grid grid-cols-6 gap-4" style="width: 100%">
-                {% for track in playlist.tracks %}
-                    <div {% if user.is_authenticated %} onclick="playAndMakeTransparent(this, '{{ track.preview_url }}', '{{ track.name }}', '{{ track.artist_name }}','{{track.album_image}}');" {% else %} onclick="showLoginAlert()" {% endif %}>
+                {% for track in playlist_data.tracks %}
+                    <div {% if user.is_authenticated %} onclick="playAndMakeTransparent(this, '{{ track.preview_url }}', '{{ track.name }}', '{{ track.artist_name }}','{{ track.album_image }}');" {% else %} onclick="showLoginAlert()" {% endif %}>
                         <div class="card" style="width: 200px; margin-bottom: 50px;">
-                            <img class="card-img-top" style="height: 150px;" src="{{ track.album_image }}" alt="{{ track.album_name }}">
+                            <img class="card-img-top" style="height: 150px;" src="{{ track.album_image }}" alt="{{ track.name }}">
                             <div class="card-body" style="height: 200px">
                                 <h2 class="text-green-600 text-base line-clamp-1">{{ track.name }}</h2>
                                 <h3 class="text-medium">By <strong>{{ track.artist_name }}</strong></h3>
-                                <!-- <p class="text-sm">Popularity: {{ track.track_popularity }}</p>
-                                <p class="text-sm line-clamp-1">Genres: {{track.artist_genres}} </p> -->
                             </div>
                         </div>
                     </div>
@@ -55,7 +53,7 @@
 
                                 <div class="flex flex-row justify-around">
                                     <button type="button" onclick="savePreferences()" class="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded focus:outline-none focus:shadow-outline-blue active:bg-blue-700">Save Preferences</button>
-                                    <button type="button" id="recommendButton" onclick="redirectRecommend()" class="bg-blue-700 hover:bg-blue-900 text-white font-semibold py-2 px-4 rounded focus:outline-none focus:shadow-outline-blue active:bg-blue-700" disabled>Recommend</button>
+                                    <!-- <button type="button" id="recommendButton" onclick="redirectRecommend()" class="bg-blue-700 hover:bg-blue-900 text-white font-semibold py-2 px-4 rounded focus:outline-none focus:shadow-outline-blue active:bg-blue-700" disabled>Recommend</button> -->
                                 </div>
                                 
                             </form>
@@ -77,13 +75,11 @@
                         title: 'Preferences Saved!',
                         text: 'Your preferences have been successfully saved.',
                     });
-                    // Enable Recommend button after preferences are saved
-                    document.getElementById('recommendButton').disabled = false;
                 }
-                function redirectRecommend() {
-                    // Redirect to the specified URL
-                    window.location.href = "{% url 'recommend_song' request.user.username %}";
-                }
+                // function redirectRecommend() {
+                //     // Redirect to the specified URL
+                //     window.location.href = "{% url 'recommend_song' request.user.username %}";
+                // }
             </script>
         {% endif %}
     {% endif %}
