@@ -18,6 +18,8 @@ from django.contrib.auth.decorators import login_required
 import json
 from django.views.decorators.csrf import csrf_exempt
 from users.views import preferences_view
+from django.core.exceptions import ObjectDoesNotExist
+
 
 # Fetch client credentials from settings
 SPOTIPY_CLIENT_ID = settings.SPOTIPY_CLIENT_ID
@@ -54,52 +56,82 @@ def search_song(request):
 
     return render(request, 'search.html', {'tracks': tracks})
 
-# def fetch_music(request):
-#     # Define a list of keywords to search for in playlist names
-#     keywords = ['K-pop', 'Rock', 'Pop', 'Love Songs', 'Japanese', 'Nepali', 'Bollywood']
+def fetch_music(request):
+    # Define a list of keywords to search for in playlist names
+    keywords = ['K-pop', 'Rock', 'Pop', 'Love Songs', 'Japanese', 'Nepali', 'Bollywood']
 
-#     for keyword in keywords:
-#         playlists = sp.search(q=keyword, type='playlist', limit=1)
-#         if not playlists['playlists']['items']:
-#             continue
+    for keyword in keywords:
+        playlists = sp.search(q=keyword, type='playlist', limit=1)
+        if not playlists['playlists']['items']:
+            continue
 
-#         playlist_data = random.choice(playlists['playlists']['items'])
-#         playlist_uri = playlist_data['uri']
-#         playlist_name = playlist_data['name']
+        playlist_data = random.choice(playlists['playlists']['items'])
+        playlist_uri = playlist_data['uri']
+        playlist_name = playlist_data['name']
 
-#         all_tracks_data = sp.playlist_tracks(playlist_uri)["items"]
-#         selected_tracks_data = random.sample(all_tracks_data, min(len(all_tracks_data), 10))
+        all_tracks_data = sp.playlist_tracks(playlist_uri)["items"]
+        selected_tracks_data = random.sample(all_tracks_data, min(len(all_tracks_data), 10))
 
-#         for track_data in selected_tracks_data:
-#             track = track_data["track"]
+        for track_data in selected_tracks_data:
+            track = track_data["track"]
             
-#             artist_uri = track["artists"][0]["uri"]
-#             artist_info = sp.artist(artist_uri)
-#             album_image_url = track["album"]["images"][0]["url"] if track["album"]["images"] else None
+            artist_uri = track["artists"][0]["uri"]
+            artist_info = sp.artist(artist_uri)
+            album_image_url = track["album"]["images"][0]["url"] if track["album"]["images"] else None
 
-#             # Save track to the database only if preview_url is not None
-#             preview_url = track.get("preview_url")
-#             if preview_url:
-#                 # Create a new playlist based on the keyword if it doesn't exist
-#                 playlist, _ = Playlist.objects.get_or_create(name=keyword)
+            # Save track to the database only if preview_url is not None
+            preview_url = track.get("preview_url")
+            if preview_url:
+                # Create a new playlist based on the keyword if it doesn't exist
+                playlist, _ = Playlist.objects.get_or_create(name=keyword)
                 
-#                 # Save the track associated with the current playlist (keyword)
-#                 new_track = Track.objects.create(
-#                     playlist=playlist,
-#                     name=track["name"],
-#                     artist_name=track["artists"][0]["name"],
-#                     artist_popularity=artist_info["popularity"],
-#                     artist_genres=artist_info["genres"],
-#                     album_name=track["album"]["name"],
-#                     track_popularity=track["popularity"],
-#                     album_image=album_image_url,
-#                     preview_url=preview_url
-#                 )
-#                 print(f"Keyword: {keyword}, Track: {new_track.name}, Artist: {new_track.artist_name}")
-#             else:
-#                 print(f"Skipping track {track['name']} because preview_url is missing.")
+                # Save the track associated with the current playlist (keyword)
+                new_track = Track.objects.create(
+                    playlist=playlist,
+                    name=track["name"],
+                    artist_name=track["artists"][0]["name"],
+                    artist_popularity=artist_info["popularity"],
+                    artist_genres=artist_info["genres"],
+                    album_name=track["album"]["name"],
+                    track_popularity=track["popularity"],
+                    album_image=album_image_url,
+                    preview_url=preview_url
+                )
+                print(f"Keyword: {keyword}, Track: {new_track.name}, Artist: {new_track.artist_name}")
+            else:
+                print(f"Skipping track {track['name']} because preview_url is missing.")
 
-#     return redirect('admin:index')
+    return redirect('admin:index')
+
+def update_song_rating(request, username):
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            # print(data)
+            song_data = data.get('data')
+            if song_data:
+                song_name = song_data.get('song_name')
+                rating = song_data.get('rating')
+                # print(song_name, rating)  # Output: Closer Than This 4
+            else:
+                print('No song data found in the request')
+
+            # Update the rating of the song in the database
+            if song_name and rating:
+                try:
+                    song = Track.objects.get(name=song_name)
+                    # print(song)
+                    song.rating = rating
+                    song.save()
+                    return JsonResponse({'success': True})
+                except ObjectDoesNotExist:
+                    return JsonResponse({'success': False, 'error': 'Song does not exist'})
+            else:
+                return JsonResponse({'success': False, 'error': 'Invalid data'})
+        except json.JSONDecodeError:
+            return JsonResponse({'success': False, 'error': 'Invalid JSON data'})
+    else:
+        return JsonResponse({'success': False, 'error': 'Invalid request method'})
 
 def featured_music(request):
     user_has_preferences = None
@@ -156,7 +188,6 @@ def user_preferences_view(request, username):
 
 def get_all_songs(favorite_music_genres):
     all_music = {}
-    print("genres get all", favorite_music_genres)
 
     # Ensure favorite_music_genres is a list
     if not isinstance(favorite_music_genres, list):
@@ -164,50 +195,38 @@ def get_all_songs(favorite_music_genres):
         favorite_music_genres = favorite_music_genres.split(',')
 
     # Remove leading and trailing whitespaces, square brackets, and single quotes
-    favorite_music_genres = [genre.strip("[]'") for genre in favorite_music_genres]
+    favorite_music_genres = [genre.strip("[]' ") for genre in favorite_music_genres]
+
+    # Debugging print to see the genres after stripping
+    # print("Genres after stripping:", favorite_music_genres)
 
     for genre in favorite_music_genres:
         genre = genre.strip()  # Remove leading and trailing whitespaces
-        print("genre", genre)
 
         try:
-            # Search for playlists with the specified genre name
-            playlists = sp.search(q=genre, type='playlist', limit=1)
+            # Query the database to get playlist based on the genre
+            playlist = Playlist.objects.get(name=genre)
 
-            if 'playlists' not in playlists or not playlists['playlists']['items']:
-                continue
+            # Query the database to get tracks related to the playlist
+            tracks = Track.objects.filter(playlist=playlist)[:20]
 
-            selected_playlist = playlists['playlists']['items'][0]  # Select the first playlist
-            playlist_uri = selected_playlist['uri']
-
-            # Fetch up to 20 tracks from the selected playlist
-            tracks_data = sp.playlist_tracks(playlist_uri, limit=20)["items"]
-
-            for track_data in tracks_data:
-                track = track_data["track"]
-
-                artist_uri = track["artists"][0]["uri"]
-                artist_info = sp.artist(artist_uri)
-                album_image_url = track["album"]["images"][0]["url"] if track["album"]["images"] else None
-
-                song_key = track["name"]
-                all_music[song_key] = {
-                    "uri": track["uri"],
-                    "name": track["name"],
-                    "artist_name": track["artists"][0]["name"],
-                    "artist_popularity": artist_info["popularity"],
-                    "artist_genres": artist_info["genres"],
-                    "album_name": track["album"]["name"],
-                    "track_popularity": track["popularity"],
-                    "album_image": album_image_url,
-                    "preview_url": track.get("preview_url")
+            for track in tracks:
+                all_music[track.name] = {
+                    "name": track.name,
+                    "artist_name": track.artist_name,
+                    "artist_popularity": track.artist_popularity,
+                    "artist_genres": track.artist_genres.split(','),  # Convert genres string to list
+                    "album_name": track.album_name,
+                    "track_popularity": track.track_popularity,
+                    "album_image": track.album_image,
+                    "preview_url": track.preview_url,
+                    "rating": track.rating,
                 }
 
-        except spotipy.SpotifyException as e:
-            # Handle Spotify API exceptions, e.g., invalid category ID
-            print(f"Error fetching data for {genre}: {str(e)}")
-        print("all music", all_music)
-
+        except Playlist.DoesNotExist:
+            # Handle the case where the playlist doesn't exist
+            print(f"Playlist with name '{genre}' does not exist.")
+        # print(all_music)
     return all_music
 
 
@@ -417,14 +436,12 @@ def recommend_song(request, username):
     user_listening_history = listening_history(user_obj)
     song_data = get_user_song_data(age_group, favorite_music_genre)
     data = get_user_song_list()
-    # print("list", data)
-    print("song",song_data)
     frequent_itemsets = generate_frequent_itemsets(song_data, min_support_threshold)
     association_rule = generate_association_rules(frequent_itemsets)
     recommendations = recommend_songs(song_data, association_rule,user_obj,sp)
     random_songs = random.sample(recommendations, min(10, len(recommendations)))
     matrix = recommend(user_obj,data)
-    print("matrix",favorite_music_genre)
+    # print("matrix",favorite_music_genre)
 
     # If there are no recommendations, generate a random playlist
     if not recommendations:

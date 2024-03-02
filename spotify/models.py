@@ -38,6 +38,7 @@ class Track(models.Model):
     album_image = models.URLField()
     preview_url = models.URLField(null=True)
     playlist = models.ForeignKey(Playlist, on_delete=models.CASCADE)
+    rating = models.FloatField(default=0.0) 
 
     def __str__(self):
         return f"{self.name} by {self.artist_name}"

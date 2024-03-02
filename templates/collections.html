@@ -20,8 +20,21 @@
               <div>
                 <p class="text-xl font-bold">{{ recommendation.song }}</p>
                 <p class="text-lg font-semibold">Artist Name: {{ recommendation.song_details.artist_name }}</p>
+                <!-- Add a rating component -->
+                <div class="rating">
+                  {% for _ in "12345" %}
+                    {% if forloop.counter <= recommendation.song_details.rating %}
+                      <span class="star" style="color: gold;" data-rating="{{ forloop.counter }}">&#9733;</span>
+                    {% else %}
+                      <span class="star" style="color: rgb(0, 0, 0);" data-rating="{{ forloop.counter }}">&#9733;</span>
+                    {% endif %}
+                  {% endfor %}
+                </div>
+                
               </div>
             </div>
+            <!-- Add a rate button -->
+            <button class="rate-button" onclick="showRatingModal('{{ recommendation.song }}')" style="background-color: blue; color: white;">Rate</button>
           {% endfor %}
         {% else %}
           {% for random_song in recommended_songs %}
@@ -35,8 +48,21 @@
               <div>
                 <p class="text-xl font-bold">{{ random_song.song }}</p>
                 <p class="text-lg font-semibold">Artist Name: {{ random_song.song_details.artist_name }}</p>
+                <!-- Add a rating component -->
+                <div class="rating">
+                  {% for _ in "12345" %}
+                    {% if forloop.counter <= random_song.song_details.rating %}
+                      <span class="star" style="color: gold;" data-rating="{{ forloop.counter }}">&#9733;</span>
+                    {% else %}
+                      <span class="star" style="color: black;" data-rating="{{ forloop.counter }}">&#9733;</span>
+                    {% endif %}
+                  {% endfor %}
+                </div>
+                
               </div>
             </div>
+            <!-- Add a rate button -->
+            <button class="rate-button" onclick="showRatingModal('{{ random_song.song }}')" style="background-color: blue; color: white;">Rate</button>
           {% endfor %}
         {% endif %}
       </div>
@@ -59,8 +85,21 @@
             <div>
               <p class="text-xl font-bold">{{ recommendation.song_title }}</p>
               <p class="text-lg font-semibold">Artist Name: {{ recommendation.artist_name }}</p>
+              <!-- Add a rating component -->
+              <div class="rating">
+                {% for _ in "12345" %}
+                  {% if forloop.counter <= recommendation.song_details.rating %}
+                    <span class="star" style="color: gold;" data-rating="{{ forloop.counter }}">&#9733;</span>
+                  {% else %}
+                    <span class="star" style="color: rgb(0, 0, 0);" data-rating="{{ forloop.counter }}">&#9733;</span>
+                  {% endif %}
+                {% endfor %}
+              </div>
+              
             </div>
           </div>
+          <!-- Add a rate button -->
+          <button class="rate-button" onclick="showRatingModal('{{ recommendation.song_title }}')" style="background-color: blue; color: white;">Rate</button>
         {% endfor %}
         {% else %}
           {% for random_song in random_recommendation_matrix %}
@@ -74,8 +113,21 @@
               <div>
                 <p class="text-xl font-bold">{{ random_song.song }}</p>
                 <p class="text-lg font-semibold">Artist Name: {{ random_song.song_details.artist_name }}</p>
+                <!-- Add a rating component -->
+                <div class="rating">
+                  {% for _ in "12345" %}
+                    {% if forloop.counter <= random_song.song_details.rating %}
+                      <span class="star" style="color: gold;" data-rating="{{ forloop.counter }}">&#9733;</span>
+                    {% else %}
+                      <span class="star" style="color: black;" data-rating="{{ forloop.counter }}">&#9733;</span>
+                    {% endif %}
+                  {% endfor %}
+                </div>
+                
               </div>
             </div>
+            <!-- Add a rate button -->
+            <button class="rate-button" onclick="showRatingModal('{{ random_song.song }}')" style="background-color: blue; color: white;">Rate</button>
           {% endfor %}
         {% endif %}
       </div>
@@ -140,7 +192,7 @@
   // Call showFeedbackModal after 30 seconds
   setTimeout(showFeedbackModal, 30000);
 
-
+  
 
   function submitFeedback() {
     const algorithm = document.getElementById('algorithm').value;
@@ -191,6 +243,74 @@
         });
     }
   }
+  function rateSong(starElement, songName, rating) {
+        // Get the CSRF token
+        const csrftoken = getCookie('csrftoken');
+
+        // Prepare the data to send to the server
+        const data = {
+            'song_name': songName,
+            'rating': rating
+        };
+
+        // Send a POST request to the server to update the song rating
+        $.ajax({
+            type: 'POST',
+            url: '/spotify/' + username +'/update_song_rating/',  // Replace with the URL for updating song rating
+            contentType: 'application/json; charset=utf-8',
+            dataType: 'json',
+            data: JSON.stringify({ 'data': data }),
+            headers: { 'X-CSRFToken': csrftoken },
+            success: function (response) {
+                // Handle success response if needed
+                console.log('Song rating updated successfully.');
+                // You can update the UI to reflect the updated rating if needed
+            },
+            error: function (error) {
+                // Handle error response if needed
+                console.error('Error updating song rating:', error);
+            }
+        });
+
+        // Update the UI to reflect the selected rating
+        const stars = $(starElement).parent().find('.star');
+        stars.each(function () {
+            const starRating = parseInt($(this).attr('data-rating'));
+            if (starRating <= rating) {
+                $(this).addClass('rated');
+            } else {
+                $(this).removeClass('rated');
+            }
+        });
+    }
+  function showRatingModal(songName) {
+    Swal.fire({
+        title: `Rate "${songName}"`,
+        html: '<select id="rating" class="swal2-select">' +
+            '<option value="1">&#9733;</option>' +
+            '<option value="2">&#9733;&#9733;</option>' +
+            '<option value="3">&#9733;&#9733;&#9733;</option>' +
+            '<option value="4">&#9733;&#9733;&#9733;&#9733;</option>' +
+            '<option value="5">&#9733;&#9733;&#9733;&#9733;&#9733;</option>' +
+            '</select>',
+        showCancelButton: true,
+        confirmButtonText: 'Submit',
+        cancelButtonText: 'Cancel',
+        reverseButtons: true,
+        focusConfirm: false,
+        preConfirm: () => {
+            return document.getElementById('rating').value;
+        }
+    }).then((result) => {
+        if (result.isConfirmed) {
+            const rating = result.value;
+            // Now you can handle the rating submission logic using the 'rating' value
+            // For example, you can call the 'rateSong' function passing the 'rating' value
+            rateSong(null, songName, rating);
+        }
+    });
+}
+
 
   // Function to get the CSRF token from the cookie
   function getCookie(name) {
