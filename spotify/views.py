@@ -1,3 +1,4 @@
+import csv
 import itertools
 import traceback
 from django.shortcuts import get_object_or_404, redirect, render
@@ -8,17 +9,19 @@ from spotipy.oauth2 import SpotifyClientCredentials
 from django.conf import settings
 import random
 import numpy as np
-from django.db.models import F
+from django.db.models import F, Avg
 from users.models import PlayHistory, UserPreferences
 from django.contrib.auth.models import User
 from itertools import combinations
-from django.http import JsonResponse
+from django.http import HttpResponse, JsonResponse
 from .models import Feedback, Playlist, Track
 from django.contrib.auth.decorators import login_required
 import json
 from django.views.decorators.csrf import csrf_exempt
 from users.views import preferences_view
 from django.core.exceptions import ObjectDoesNotExist
+from django.contrib import messages
+from operator import itemgetter
 
 
 # Fetch client credentials from settings
@@ -28,16 +31,31 @@ SPOTIPY_CLIENT_SECRET = settings.SPOTIPY_CLIENT_SECRET
 # Initialize spotipy with your client id and secret
 sp = spotipy.Spotify(auth_manager=SpotifyClientCredentials(client_id=SPOTIPY_CLIENT_ID, client_secret=SPOTIPY_CLIENT_SECRET))
 
-# Create your views here.
-# Create your views here.
 
 def show_base(request):
     return render(request, 'landing.html')
 
+def export_to_csv(request):
+    # Fetch data from your Django models
+    queryset = Track.objects.all()
+
+    response = HttpResponse(content_type='text/csv')
+    response['Content-Disposition'] = 'attachment; filename="data.csv"'
+
+    # Write CSV headers
+    writer = csv.writer(response)
+    writer.writerow(['name', 'artist_name', 'artist_genres','album_name'])  # Replace with your actual field names
+
+    # Write data rows
+    for item in queryset:
+        writer.writerow([item.name, item.artist_name, item.artist_genres, item.album_name])  # Replace with your actual field names
+
+    return response
+
 def search_song(request):
     query = request.GET.get('query')
     # Start with song search
-    song_results = sp.search(q=query, type='track', limit=10)
+    song_results = sp.search(q=query, type='track', limit=20)
     tracks = []
 
     for track in song_results['tracks']['items']:
@@ -61,7 +79,7 @@ def fetch_music(request):
     keywords = ['K-pop', 'Rock', 'Pop', 'Love Songs', 'Japanese', 'Nepali', 'Bollywood']
 
     for keyword in keywords:
-        playlists = sp.search(q=keyword, type='playlist', limit=1)
+        playlists = sp.search(q=keyword, type='playlist', limit=3)
         if not playlists['playlists']['items']:
             continue
 
@@ -106,30 +124,35 @@ def fetch_music(request):
 def update_song_rating(request, username):
     if request.method == 'POST':
         try:
-            data = json.loads(request.body)
-            # print(data)
-            song_data = data.get('data')
-            if song_data:
-                song_name = song_data.get('song_name')
-                rating = song_data.get('rating')
-                # print(song_name, rating)  # Output: Closer Than This 4
-            else:
-                print('No song data found in the request')
+            # Get song name and rating from the POST data
+            song_name = request.POST.get('songName')
+            rating = int(request.POST.get('rating'))
 
-            # Update the rating of the song in the database
-            if song_name and rating:
-                try:
-                    song = Track.objects.get(name=song_name)
-                    # print(song)
-                    song.rating = rating
-                    song.save()
-                    return JsonResponse({'success': True})
-                except ObjectDoesNotExist:
-                    return JsonResponse({'success': False, 'error': 'Song does not exist'})
-            else:
-                return JsonResponse({'success': False, 'error': 'Invalid data'})
-        except json.JSONDecodeError:
-            return JsonResponse({'success': False, 'error': 'Invalid JSON data'})
+            # Retrieve the song from the database
+            try:
+                song = Track.objects.get(name=song_name)
+            except ObjectDoesNotExist:
+                return JsonResponse({'success': False, 'error': 'Song does not exist'})
+            # print(song)
+            # Update the rating of the song
+            # Incremental update: add the new rating to the existing ones
+            current_ratings = song.rating_count
+            current_total_rating = song.rating * current_ratings
+            new_total_rating = current_total_rating + rating
+            new_rating_count = current_ratings + 1
+
+            # Calculate the new average rating
+            new_avg_rating = round(new_total_rating / new_rating_count, 2)
+
+            # Update the song with the new rating and rating count
+            song.rating = new_avg_rating
+            song.rating_count = new_rating_count
+            song.save()
+            messages.success(request,'Song Rated Successfully!')
+            return redirect('recommend_song', username=username)
+        except Exception as e:
+            return JsonResponse({'success': False, 'error': str(e)})
+
     else:
         return JsonResponse({'success': False, 'error': 'Invalid request method'})
 
@@ -153,9 +176,10 @@ def featured_music(request):
         # Select ten random tracks from all tracks
         selected_tracks = random.sample(list(all_tracks), min(len(all_tracks), 10))
         # Append playlist and tracks data as a dictionary to playlists_data list
-        playlists_data.append({'playlist': playlist, 'tracks': selected_tracks})
+        playlists_data.append({'playlist': playlist.name, 'tracks': selected_tracks})
 
     return render(request, 'home.html', {'featured_playlists': playlists_data, 'user_has_preferences': user_has_preferences, 'form': form})
+
 
 def user_preferences_view(request, username):
     # Check if the user is authenticated
@@ -208,7 +232,7 @@ def get_all_songs(favorite_music_genres):
             playlist = Playlist.objects.get(name=genre)
 
             # Query the database to get tracks related to the playlist
-            tracks = Track.objects.filter(playlist=playlist)[:20]
+            tracks = Track.objects.filter(playlist=playlist)[:40]
 
             for track in tracks:
                 all_music[track.name] = {
@@ -288,8 +312,8 @@ def generate_random_recommendations(favorite_genre, min_confidence):
     # Filter out songs with popularity below min_confidence
     high_popularity_songs = {song: details for song, details in all_music.items() if details['track_popularity'] >= min_confidence}
 
-    # Sort the high_popularity_songs dictionary by popularity in descending order
-    sorted_songs = sorted(high_popularity_songs.items(), key=lambda x: x[1]['track_popularity'], reverse=True)
+    # Sort the high_popularity_songs dictionary by rating in descending order
+    sorted_songs = sorted(high_popularity_songs.items(), key=lambda x: x[1]['rating'], reverse=True)
 
     # Extract song names from sorted_songs
     random_recommendation = [song for song, details in sorted_songs]
@@ -300,20 +324,25 @@ def generate_random_recommendations(favorite_genre, min_confidence):
     return random_recommendations
 
 
-def generate_random_matrix(favorite_genre,min_confidence):
-    # Generate a list of random songs with high confidence
+def generate_random_matrix(favorite_genre, min_confidence):
+    # Generate a list of songs with high confidence from the given genre
     all_music = get_all_songs(favorite_genre)
-    random_songs = get_random_songs(all_music)
-    random_matrix = random.sample(random_songs, min(10, len(random_songs)))
-    random_recommendation_matrix = [{'song': song, 'song_details': all_music[song]} for song in random_matrix]
+    
+    # Extract song names and details from the featured tracks
+    songs_with_details = [(song, all_music[song]['rating'], all_music[song]) for song in all_music]
+    
+    # Shuffle the list of songs randomly
+    random.shuffle(songs_with_details)
+    
+    # Sort the shuffled songs by rating in descending order
+    sorted_songs = sorted(songs_with_details, key=lambda x: x[1], reverse=True)
+    # print(sorted_songs)
+
+    # Select a random subset of the sorted songs, limit to 10 songs or less
+    num_recommendations = min(10, len(sorted_songs))
+    random_recommendation_matrix = [{'song': song[0], 'rating': song[1], 'song_details': song[2]} for song in sorted_songs[:num_recommendations]]
+    # print(random_recommendation_matrix)
     return random_recommendation_matrix
-
-def get_random_songs(all_music):
-    # Extract song names from the featured tracks
-    all_songs = list(all_music.keys())
-
-    # Replace this with your logic to fetch random songs (e.g., from a database or API)
-    return all_songs
 
 
 def generate_frequent_itemsets(user_song_data, min_support):
@@ -359,44 +388,48 @@ def generate_association_rules(frequent_itemsets):
 
     return rules
 
-def recommend_songs(song_data, association_rules, user_obj, sp):
+def recommend_songs(song_data, association_rules, user_obj):
     recommendations = []
+    username = user_obj.username
 
-    # Convert the user's listening history to a set of tuples
-    user_listening_history = set(song_data[user_obj.username])
+    # Check if user_obj exists in song_data
+    if username in song_data:
+        # Extract the listening history for the current user
+        user_listening_history = song_data[username]
 
-    for rule in association_rules:
-        antecedent, consequent, support, confidence = rule
+        for rule in association_rules:
+            antecedent, consequent, support, confidence = rule
 
-        # Check if the antecedent is in the user's listening history
-        if antecedent.issubset(user_listening_history):
-            # Filter out songs already in the listening history
-            recommended_songs = list(consequent - user_listening_history)
-            for song_tuple in recommended_songs:
-                # Check if the song tuple is in the user's listening history
-                if song_tuple in user_listening_history:
-                    continue
+            # Check if the antecedent is in the user's listening history
+            if antecedent.issubset(user_listening_history):
+                # Filter out songs already in the listening history
+                recommended_songs = list(consequent - user_listening_history)
+                for song_tuple in recommended_songs:
+                    # Check if the song tuple is in the user's listening history
+                    if song_tuple in user_listening_history:
+                        continue
 
-                # Extract song title, artist_name, and album_image from the song tuple
-                song_title, artist_name, album_image, _ = song_tuple
+                    # Extract song title, artist_name, and album_image from the song tuple
+                    song_title, artist_name, album_image, rating = song_tuple
 
-                # Make an API request to Spotify to get additional details including preview_url
-                track_results = sp.search(q=f"{song_title} {artist_name}", type='track', limit=1)
+                    # Query the Track model for the song details
+                    track = Track.objects.filter(name=song_title, artist_name=artist_name).first()
 
-                if track_results['tracks']['items']:
-                    track = track_results['tracks']['items'][0]
-                    preview_url = track.get('preview_url')
-
-                    recommendations.append({
-                        'song': song_title,
-                        'confidence': confidence,
-                        'song_details': {
-                            'artist_name': artist_name,
-                            'album_image': album_image,
-                            'preview_url': preview_url,
-                        },
-                    })
-
+                    if track:
+                        recommendations.append({
+                            'song': song_title,
+                            'confidence': confidence,
+                            'rating': track.rating,
+                            'song_details': {
+                                'artist_name': artist_name,
+                                'album_image': album_image,
+                                'preview_url': track.preview_url,
+                            },
+                        })
+    else:
+        print("User not found in song_data:", user_obj)
+    # Sort recommendations based on the rating in descending order
+    recommendations.sort(key=itemgetter('rating'), reverse=True)
     return recommendations
 
 
@@ -438,10 +471,11 @@ def recommend_song(request, username):
     data = get_user_song_list()
     frequent_itemsets = generate_frequent_itemsets(song_data, min_support_threshold)
     association_rule = generate_association_rules(frequent_itemsets)
-    recommendations = recommend_songs(song_data, association_rule,user_obj,sp)
+    recommendations = recommend_songs(song_data, association_rule,user_obj)
     random_songs = random.sample(recommendations, min(10, len(recommendations)))
     matrix = recommend(user_obj,data)
-    # print("matrix",favorite_music_genre)
+    print("matrix",matrix)
+    print(recommendations,"apriori")
 
     # If there are no recommendations, generate a random playlist
     if not recommendations:
@@ -474,9 +508,10 @@ def get_user_song_list():
     play_counts = []
     song_titles = []  # New list for song titles
     user_names = []   # New list for user names
-    artist_name = []
-    album_image = []
-    preview_url = []
+    artist_names = []
+    album_images = []
+    preview_urls = []
+    ratings = []
 
     # Create dictionaries to map usernames and song details to unique numerical identifiers
     user_id_mapping = {}
@@ -503,6 +538,10 @@ def get_user_song_list():
             if song_id == song_counter:
                 song_counter += 1
 
+            # Query the Track model to get the rating for the song
+            track = Track.objects.filter(name=song_entry.song_title, artist_name=song_entry.artist_name).first()
+            rating = track.rating if track else 0.0
+
             # Check if the user-song combination already exists
             user_song_key = (user_id, song_id)
             if user_song_key in user_song_mapping:
@@ -514,10 +553,11 @@ def get_user_song_list():
                 song_ids.append(song_id)
                 play_counts.append(1)  # Assuming each play is counted once
                 song_titles.append(song_entry.song_title)
-                artist_name.append(song_entry.artist_name)
-                album_image.append(song_entry.album_image)
+                artist_names.append(song_entry.artist_name)
+                album_images.append(song_entry.album_image)
                 user_names.append(user.username)
-                preview_url.append(song_entry.preview_url)
+                preview_urls.append(song_entry.preview_url)
+                ratings.append(rating)
 
                 # Update the user-song mapping
                 user_song_mapping[user_song_key] = len(user_ids) - 1
@@ -529,12 +569,13 @@ def get_user_song_list():
         'play_count': play_counts,
         'song_title': song_titles,  # Add song titles to the DataFrame
         'user_name': user_names,     # Add user names to the DataFrame
-        'artist_name': artist_name,
-        'album_image': album_image,
-        'preview_url' : preview_url,
-
+        'artist_name': artist_names,
+        'album_image': album_images,
+        'preview_url' : preview_urls,
+        'rating': ratings,
     })
     return data
+
 
 def matrix_factorization(data, num_users, num_songs, num_factors, num_iterations, learning_rate):
     # Initialize user and item matrices randomly
@@ -567,6 +608,7 @@ def recommend(username,data):
     num_factors = 5  # Adjust as needed
     num_iterations = 50  # Adjust as needed
     learning_rate = 0.01  # Adjust as needed
+    
 
     user_matrix, song_matrix = matrix_factorization(data, num_users, num_songs, num_factors, num_iterations, learning_rate)
 
@@ -585,10 +627,13 @@ def recommend(username,data):
             'song_title': data[data['song_id'] == song_id]['song_title'].iloc[0],
             'artist_name': data[data['song_id'] == song_id]['artist_name'].iloc[0],  # Assuming you have 'artist_name' column
             'album_image': data[data['song_id'] == song_id]['album_image'].iloc[0],  # Assuming you have 'album_image' column
-            'preview_url': fetch_preview_url(song_id),   # Assuming you have 'album_image' column
+            'preview_url': fetch_preview_url(song_id),   
+            'rating': data[data['song_id'] == song_id]['rating'].iloc[0], # Assuming you have 'album_image' column
         }
         for song_id in recommended_song_ids
     ]
+    # Sort recommended songs by rating in descending order
+    recommended_song_details.sort(key=lambda x: x['rating'], reverse=True)
 
     # print("Recommended Song Details:", recommended_song_details)
 
@@ -597,7 +642,6 @@ def recommend(username,data):
     context = {
         'user_song_list' : user_song_list,
         'recommended_songs': recommended_song_details,
-
     }
     return context
 

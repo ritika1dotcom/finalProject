@@ -24,6 +24,7 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('',views.show_base, name='landing'),
     path('chart',views.chart_page, name='chart_page'),
+    path('export', views.export_to_csv, name='export_to_csv'),
     path('home/',views.featured_music, name="home"),
     path('spotify/',include('spotify.urls')),
     path('user/',include('users.urls')),
