@@ -416,7 +416,7 @@ def recommend_songs(song_data, association_rules, user_obj):
                     track = Track.objects.filter(name=song_title, artist_name=artist_name).first()
 
                     if track:
-                        recommendations.append({
+                        recommendation = {
                             'song': song_title,
                             'confidence': confidence,
                             'rating': track.rating,
@@ -425,11 +425,16 @@ def recommend_songs(song_data, association_rules, user_obj):
                                 'album_image': album_image,
                                 'preview_url': track.preview_url,
                             },
-                        })
+                        }
+                        # Check if the recommendation already exists in recommendations list
+                        if recommendation not in recommendations:
+                            recommendations.append(recommendation)
     else:
         print("User not found in song_data:", user_obj)
+
     # Sort recommendations based on the rating in descending order
-    recommendations.sort(key=itemgetter('rating'), reverse=True)
+    recommendations.sort(key=lambda x: x['rating'], reverse=True)
+    # print(recommendations)
     return recommendations
 
 
@@ -472,10 +477,10 @@ def recommend_song(request, username):
     frequent_itemsets = generate_frequent_itemsets(song_data, min_support_threshold)
     association_rule = generate_association_rules(frequent_itemsets)
     recommendations = recommend_songs(song_data, association_rule,user_obj)
-    random_songs = random.sample(recommendations, min(10, len(recommendations)))
+    random_songs = recommendations[:10]
     matrix = recommend(user_obj,data)
-    print("matrix",matrix)
-    print(recommendations,"apriori")
+    # print("matrix",matrix)
+    # print(recommendations,"apriori")
 
     # If there are no recommendations, generate a random playlist
     if not recommendations:
